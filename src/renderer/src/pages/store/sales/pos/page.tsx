@@ -755,7 +755,7 @@ export default function POSPage() {
               <div className="fs-sm uppercase mt-1">
                 {currentStore?.address}
               </div>
-              <div className="fs-sm mt-1">
+              <div className="fs-sm mt-1 ">
                 Tel: {currentStore?.phone}
               </div>
               <div className="fs-xs mt-2 uppercase">
@@ -780,7 +780,7 @@ export default function POSPage() {
                 <div key={idx} className="flex fs-sm mt-1">
                   <div>
                     <div className="font-bold">{item.productName}</div>
-                    <div className="fs-xs">
+                    <div className="fs-xs font-bold ">
                       Qty: {item.quantity} x {item.sellingPrice}
                     </div>
                   </div>
@@ -817,16 +817,16 @@ export default function POSPage() {
               <div className="fs-xs font-bold uppercase">
                 Powered by REX POS
               </div>
-              <div className="fs-xs">
+              <div className="fs-xs font-bold">
                 Developed by Hafiz Hasnain
               </div>
-              <div className="fs-xs">
+              <div className="fs-xs font-bold">
                 +92 321 4233028
               </div>
-              <div className="fs-xs">
+              <div className="fs-xs font-bold">
                 hafizhasnain.dev@gmail.com
               </div>
-              <div className="fs-xs">
+              <div className="fs-xs font-bold">
                 codyxa.com
               </div>
             </div>

@@ -31,7 +31,7 @@ export const printContent = async ({
 
     /* Font sizes */
     .fs-lg { font-size: 16px; font-weight: bold; }
-    .fs-md { font-size: 12px; }
+    .fs-md { font-size: 12px;  }
     .fs-sm { font-size: 10px; }
     .fs-xs { font-size: 9px; }
 
