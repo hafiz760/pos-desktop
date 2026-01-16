@@ -30,6 +30,8 @@ import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 
+import SimpleDashboard from './SimpleDashboard'
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -70,6 +72,24 @@ export default function DashboardPage() {
     }
   }
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4ade80]"></div>
+      </div>
+    )
+  }
+
+  // Check roles: If not ADMIN, show the simplified dashboard
+  if (user?.globalRole !== 'ADMIN') {
+    return <SimpleDashboard stats={stats} user={user} />
+  }
+
+  // Render original Admin Dashboard
+  return <AdminDashboard stats={stats} user={user} />
+}
+
+function AdminDashboard({ stats, user }: { stats: any; user: any }) {
   const dashboardStats = [
     {
       title: 'Total Revenue',
@@ -114,14 +134,6 @@ export default function DashboardPage() {
     { name: 'Sat', sales: 0 },
     { name: 'Sun', sales: 0 }
   ]
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4ade80]"></div>
-      </div>
-    )
-  }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
