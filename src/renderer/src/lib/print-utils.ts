@@ -58,16 +58,3 @@ export const printContent = async ({ title, content, styles = '' }: PrintOptions
     alert(`Print failed: ${error}`)
   }
 }
-
-export const printRawContent = async (data: any) => {
-  console.log('📄 Sending raw data to IPC...')
-  try {
-    if (!window.api || !window.api.printer || !window.api.printer.printRawReceipt) {
-      console.error('Raw Printer API not found!')
-      return
-    }
-    await window.api.printer.printRawReceipt(data)
-  } catch (error) {
-    console.error('Failed to print raw receipt:', error)
-  }
-}

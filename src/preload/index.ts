@@ -92,8 +92,7 @@ const api = {
     create: (data) => ipcRenderer.invoke('expenses:create', data)
   },
   printer: {
-    printReceipt: (html: string) => ipcRenderer.invoke('printer:printReceipt', html),
-    printRawReceipt: (data: any) => ipcRenderer.invoke('printer:printRawReceipt', data)
+    printReceipt: (html: string) => ipcRenderer.invoke('printer:printReceipt', html)
   },
   dashboard: {
     getStats: (storeId) => ipcRenderer.invoke('dashboard:getStats', storeId)

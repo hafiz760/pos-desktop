@@ -31,7 +31,7 @@ import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@renderer/components/ui/form'
 import { useNavigate } from 'react-router-dom'
-import { printContent, printRawContent } from '@renderer/lib/print-utils'
+import { printContent } from '@renderer/lib/print-utils'
 
 const checkoutSchema = z.object({
   customerName: z.string().optional().or(z.literal('')),
@@ -296,25 +296,13 @@ export default function POSPage() {
 
   const handlePrint = async () => {
     console.log('🔘 Print Receipt button clicked')
+    const content = receiptRef.current
+    if (!content) return
 
-    if (lastSale) {
-      console.log('📃 Printing via raw ESC/POS commands...')
-      await printRawContent({
-        ...lastSale,
-        storeName: currentStore.name,
-        storeAddress: currentStore.address,
-        storePhone: currentStore.phone,
-        saleDate: format(new Date(lastSale.saleDate), 'dd/MM/yyyy HH:mm')
-      })
-    } else {
-      console.log('🖼️ Fallback to HTML printing...')
-      const content = receiptRef.current
-      if (!content) return
-      await printContent({
-        title: 'Receipt',
-        content: content.innerHTML
-      })
-    }
+    await printContent({
+      title: 'Receipt',
+      content: content.innerHTML
+    })
 
     // Auto close after print command is sent
     setTimeout(() => {

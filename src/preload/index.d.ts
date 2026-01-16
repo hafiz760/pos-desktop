@@ -94,7 +94,6 @@ declare global {
       }
       printer: {
         printReceipt: (html: string) => Promise<any>
-        printRawReceipt: (data: any) => Promise<any>
       }
       dashboard: {
         getStats: (storeId: string) => Promise<any>
