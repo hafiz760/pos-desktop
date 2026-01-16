@@ -294,30 +294,6 @@ export default function SettingsProfilePage() {
                     Role is managed by admin
                   </p>
                 </div>
-
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem className="space-y-2 md:col-span-2">
-                      <FormLabel className="text-[10px] font-black uppercase text-muted-foreground">
-                        Change Password
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type="password"
-                          placeholder="Enter new password to change..."
-                          className="bg-muted/30 border-border h-11 font-bold focus-visible:ring-[#4ade80]"
-                        />
-                      </FormControl>
-                      <FormMessage className="text-[10px] font-bold uppercase" />
-                      <p className="text-[10px] text-muted-foreground font-bold uppercase opacity-70">
-                        Leave blank if you don't want to change your password.
-                      </p>
-                    </FormItem>
-                  )}
-                />
               </div>
 
               <div className="flex justify-end pt-6 border-t border-border">

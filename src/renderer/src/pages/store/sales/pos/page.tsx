@@ -53,6 +53,7 @@ export default function POSPage() {
   const [currentStore, setCurrentStore] = useState<any>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  console.log(currentStore)
   // Receipt state
   const [lastSale, setLastSale] = useState<any>(null)
   const [showReceipt, setShowReceipt] = useState(false)
@@ -408,11 +409,10 @@ export default function POSPage() {
                     <div className="absolute top-1.5 right-1.5">
                       <Badge
                         variant="outline"
-                        className={`text-[9px] px-1.5 h-4 font-black shadow-sm ${
-                          (product.stockLevel || 0) < 5
-                            ? 'text-red-500 border-red-500/30 bg-white/90'
-                            : 'text-blue-500 border-blue-500/30 bg-white/90'
-                        }`}
+                        className={`text-[9px] px-1.5 h-4 font-black shadow-sm ${(product.stockLevel || 0) < 5
+                          ? 'text-red-500 border-red-500/30 bg-white/90'
+                          : 'text-blue-500 border-blue-500/30 bg-white/90'
+                          }`}
                       >
                         {product.stockLevel || 0} IN
                       </Badge>
@@ -443,7 +443,6 @@ export default function POSPage() {
         </div>
       </div>
 
-      {/* Right Side: Cart Summary */}
       <Card className="w-full lg:w-[480px] h-full bg-card border-border flex flex-col shadow-2xl overflow-hidden shrink-0 rounded-2xl">
         <CardHeader className="border-b border-border py-4 bg-muted/30 shrink-0">
           <div className="flex items-center justify-between">
@@ -594,11 +593,10 @@ export default function POSPage() {
                           type="button"
                           size="sm"
                           variant="outline"
-                          className={`h-6 px-2 text-[10px] font-black border-border hover:bg-[#4ade80] hover:text-black ${
-                            discountPercent === 0 && discountAmount === 0
-                              ? 'bg-[#4ade80] text-black'
-                              : ''
-                          }`}
+                          className={`h-6 px-2 text-[10px] font-black border-border hover:bg-[#4ade80] hover:text-black ${discountPercent === 0 && discountAmount === 0
+                            ? 'bg-[#4ade80] text-black'
+                            : ''
+                            }`}
                           onClick={() => {
                             form.setValue('discountPercent', 0)
                             form.setValue('discountAmount', 0)
@@ -610,9 +608,8 @@ export default function POSPage() {
                           type="button"
                           size="sm"
                           variant="outline"
-                          className={`h-6 px-2 text-[10px] font-black border-border hover:bg-[#4ade80] hover:text-black ${
-                            discountPercent === 5 ? 'bg-[#4ade80] text-black' : ''
-                          }`}
+                          className={`h-6 px-2 text-[10px] font-black border-border hover:bg-[#4ade80] hover:text-black ${discountPercent === 5 ? 'bg-[#4ade80] text-black' : ''
+                            }`}
                           onClick={() => {
                             form.setValue('discountPercent', 5)
                             form.setValue('discountAmount', 0)
@@ -624,9 +621,8 @@ export default function POSPage() {
                           type="button"
                           size="sm"
                           variant="outline"
-                          className={`h-6 px-2 text-[10px] font-black border-border hover:bg-[#4ade80] hover:text-black ${
-                            discountPercent === 10 ? 'bg-[#4ade80] text-black' : ''
-                          }`}
+                          className={`h-6 px-2 text-[10px] font-black border-border hover:bg-[#4ade80] hover:text-black ${discountPercent === 10 ? 'bg-[#4ade80] text-black' : ''
+                            }`}
                           onClick={() => {
                             form.setValue('discountPercent', 10)
                             form.setValue('discountAmount', 0)
@@ -738,7 +734,6 @@ export default function POSPage() {
         </CardFooter>
       </Card>
 
-      {/* Receipt Modal */}
       <Dialog open={showReceipt} onOpenChange={setShowReceipt}>
         <DialogContent className="bg-background border-border text-foreground sm:max-w-md">
           <div className="flex flex-col items-center justify-center pt-4">
@@ -752,77 +747,92 @@ export default function POSPage() {
               Transaction completed successfully.
             </DialogDescription>
           </div>
-
-          <div
-            className="mt-6 p-6 bg-white text-black rounded-lg shadow-inner font-mono text-sm"
-            ref={receiptRef}
-          >
-            <div className="text-center border-b-2 border-dashed border-gray-300 pb-4 mb-4">
-              <h2 className="text-xl font-black uppercase mb-1">RexPOS</h2>
-              <p className="text-[10px] text-gray-500 uppercase font-bold">
-                123 Market Street, City
-              </p>
-              <p className="text-[10px] text-gray-500 uppercase font-bold mt-1">
-                Tel: +123 456 789
-              </p>
-              <p className="text-[10px] text-gray-400 mt-2 uppercase font-bold">
-                {lastSale && format(new Date(lastSale.saleDate), 'MMM dd, yyyy - HH:mm:ss')}
-              </p>
-              <p className="text-[10px] text-gray-400 uppercase font-bold">
+          <div className="mt-6 p-6 bg-white text-black rounded-lg shadow-inner font-mono text-sm" ref={receiptRef}>
+            <div className="text-center border-bottom">
+              <div className="fs-lg uppercase">
+                {currentStore?.name}
+              </div>
+              <div className="fs-sm uppercase mt-1">
+                {currentStore?.address}
+              </div>
+              <div className="fs-sm mt-1">
+                Tel: {currentStore?.phone}
+              </div>
+              <div className="fs-xs mt-2 uppercase">
+                {lastSale &&
+                  format(new Date(lastSale.saleDate), "MMM dd, yyyy - HH:mm:ss")}
+              </div>
+              <div className="fs-xs uppercase">
                 INV: {lastSale?.invoiceNumber}
-              </p>
+              </div>
             </div>
-
-            {lastSale &&
-              (lastSale.customerName || lastSale.customerPhone || lastSale.customerEmail) && (
-                <div className="border border-gray-200 rounded p-2 mb-4 bg-gray-50">
-                  <h3 className="text-[10px] font-bold uppercase text-gray-500 mb-1">Customer</h3>
-                  {lastSale.customerName && <p className="font-bold">{lastSale.customerName}</p>}
-                  {lastSale.customerPhone && <p className="text-xs">{lastSale.customerPhone}</p>}
-                </div>
-              )}
-
-            <div className="space-y-1 py-2 mb-4">
+            {lastSale?.customerName && (
+              <div className="border-bottom">
+                <div className="fs-xs uppercase font-bold">Customer</div>
+                <div className="fs-sm font-bold">{lastSale.customerName}</div>
+                {lastSale.customerPhone && (
+                  <div className="fs-sm">{lastSale.customerPhone}</div>
+                )}
+              </div>
+            )}
+            <div className="mb-3">
               {lastSale?.items.map((item: any, idx: number) => (
-                <div key={idx} className="flex justify-between items-start">
-                  <div className="flex flex-col">
-                    <span className="font-bold">{item.productName}</span>
-                    <span className="text-[10px] text-gray-500">
+                <div key={idx} className="flex fs-sm mt-1">
+                  <div>
+                    <div className="font-bold">{item.productName}</div>
+                    <div className="fs-xs">
                       Qty: {item.quantity} x {item.sellingPrice}
-                    </span>
+                    </div>
                   </div>
-                  <span className="font-bold">{(item.totalAmount || 0).toLocaleString()}</span>
+                  <div className="font-bold">
+                    {(item.totalAmount || 0).toLocaleString()}
+                  </div>
                 </div>
               ))}
             </div>
-
-            <div className="border-t-2 border-dashed border-gray-300 pt-2 space-y-1">
-              <div className="flex justify-between text-xs">
+            <div className="border-top fs-sm">
+              <div className="flex">
                 <span>Subtotal</span>
                 <span>{(lastSale?.subtotal || 0).toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-xs">
+              <div className="flex">
                 <span>Tax</span>
                 <span>{(lastSale?.taxAmount || 0).toLocaleString()}</span>
               </div>
               {lastSale?.discountAmount > 0 && (
-                <div className="flex justify-between text-xs text-red-600 font-bold">
+                <div className="flex font-bold">
                   <span>Discount</span>
-                  <span>-{(lastSale?.discountAmount || 0).toLocaleString()}</span>
+                  <span>-{lastSale.discountAmount.toLocaleString()}</span>
                 </div>
               )}
-              <div className="flex justify-between text-xl mt-2 pt-2 border-t border-black font-black">
+              <div className="flex fs-lg border-top mt-2">
                 <span>TOTAL</span>
-                <span>Rs. {(lastSale?.totalAmount || 0).toLocaleString()}</span>
+                <span>Rs. {lastSale?.totalAmount.toLocaleString()}</span>
+              </div>
+            </div>
+            <div className="text-center fs-xs mt-3">
+              THANK YOU FOR VISITING!
+            </div>
+            <div className="border-top text-center mt-3">
+              <div className="fs-xs font-bold uppercase">
+                Powered by REX POS
+              </div>
+              <div className="fs-xs">
+                Developed by Hafiz Hasnain
+              </div>
+              <div className="fs-xs">
+                +92 321 4233028
+              </div>
+              <div className="fs-xs">
+                hafizhasnain.dev@gmail.com
+              </div>
+              <div className="fs-xs">
+                codyxa.com
               </div>
             </div>
 
-            <div className="text-center mt-6 pt-4 border-t border-gray-100">
-              <p className="text-[10px] font-bold uppercase text-gray-400">
-                Thank you for visiting!
-              </p>
-            </div>
           </div>
+
 
           <div className="flex gap-3 mt-4">
             <Button

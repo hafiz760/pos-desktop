@@ -990,7 +990,7 @@ export function registerIpcHandlers() {
     console.log('🖨️ printer:printReceipt IPC handler called')
     return new Promise((resolve) => {
       const win = new BrowserWindow({
-        show: true, // Must be true for print dialog to show on Mac
+        show: true,
         width: 400,
         height: 600,
         title: 'Printing Receipt...',
@@ -1000,25 +1000,20 @@ export function registerIpcHandlers() {
         }
       })
 
-      // Write to a temp file to ensure proper loading/rendering
       const tempPath = path.join(require('os').tmpdir(), `receipt-${Date.now()}.html`)
       fs.writeFileSync(tempPath, html, 'utf-8')
-
-      // Use pathToFileURL to ensure valid URL on Windows
       const fileUrl = require('url').pathToFileURL(tempPath).href
       win.loadURL(fileUrl)
-
       win.webContents.on('did-finish-load', () => {
-        // More robust delay to ensure fonts and styles are loaded
         setTimeout(() => {
           win.webContents.print(
             {
-              silent: false, // SHOW DIALOG so you can select 80mm paper size
+              silent: false,
               printBackground: true,
               deviceName: '',
               pageSize: {
-                width: 80000, // 80mm in microns
-                height: 100000 // 100mm in microns
+                width: 80000,
+                height: 3000000
               },
               margins: { marginType: 'none' }
             },
@@ -1029,12 +1024,9 @@ export function registerIpcHandlers() {
               } else {
                 resolve({ success: true })
               }
-              // Close window after a small delay to prevent crashing on some OS
               setTimeout(() => {
                 if (!win.isDestroyed()) win.close()
               }, 500)
-
-              // Clean up temp file
               try {
                 if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath)
               } catch (e) {
