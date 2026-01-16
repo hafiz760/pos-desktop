@@ -42,8 +42,8 @@ export default function PurchaseOrdersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [totalRecords, setTotalRecords] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isReceiving, setIsReceiving] = useState(false);
+  const [_isDeleting, setIsDeleting] = useState(false);
+  const [_isReceiving, setIsReceiving] = useState(false);
 
   const [currentStore, setCurrentStore] = useState<any>(null);
 

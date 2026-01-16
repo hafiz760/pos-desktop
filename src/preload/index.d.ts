@@ -49,6 +49,17 @@ declare global {
       sales: {
         getAll: (filters?: any) => Promise<any>
         create: (data: any) => Promise<any>
+        delete: (id: string) => Promise<any>
+      }
+      accounts: {
+        getAll: (params?: any) => Promise<any>
+        create: (data: any) => Promise<any>
+        update: (id: string, data: any) => Promise<any>
+        delete: (id: string) => Promise<any>
+      }
+      expenses: {
+        getAll: (params?: any) => Promise<any>
+        create: (data: any) => Promise<any>
       }
       stores: {
         getAll: (params?: any) => Promise<any>
@@ -79,10 +90,14 @@ declare global {
         changePassword: (id: string, current: string, next: string) => Promise<any>
       }
       app: {
-        uploadImage: (data: { base64Data: string, fileName: string }) => Promise<any>
+        uploadImage: (data: { base64Data: string; fileName: string }) => Promise<any>
       }
       printer: {
         printReceipt: (html: string) => Promise<any>
+        printRawReceipt: (data: any) => Promise<any>
+      }
+      dashboard: {
+        getStats: (storeId: string) => Promise<any>
       }
     }
   }

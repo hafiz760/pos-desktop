@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { Navigate } from 'react-router-dom'
 
 export default function AccountingPage() {
-    redirect("/accounting/expenses");
+  return <Navigate to="/dashboard/accounting/expenses" replace />
 }

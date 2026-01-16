@@ -1,78 +1,93 @@
-import { useState, useEffect } from "react";
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster } from 'sonner';
-import LoginPage from './pages/auth/Login';
-import AdminDashboard from './pages/admin/Dashboard';
-import AdminLayout from './layouts/AdminLayout';
-import RolesPage from './pages/admin/roles/page';
-import RoleDetails from './pages/admin/roles/detail';
-import UsersPage from './pages/admin/users/page';
-import StoresPage from './pages/admin/stores/page';
-import StoreDetails from './pages/admin/stores/detail';
-import ProfilePage from './pages/admin/profile/page';
-import StoreLayout from "./layouts/StoreLayout";
-import ProductsPage from "@renderer/pages/store/inventory/products/page";
-import ProductDetails from "@renderer/pages/store/inventory/products/detail";
-import CategoriesPage from "@renderer/pages/store/inventory/categories/page";
-import BrandsPage from "@renderer/pages/store/inventory/brands/page";
-import SuppliersPage from "@renderer/pages/store/purchases/suppliers/page";
-import PurchaseOrdersPage from "@renderer/pages/store/purchases/orders/page";
-import CreatePurchaseOrder from "@renderer/pages/store/purchases/orders/create/page";
-import EditPurchaseOrder from "@renderer/pages/store/purchases/orders/edit";
-import PurchaseOrderDetails from "./pages/store/purchases/orders/detail";
-import StoreSettingsPage from "@renderer/pages/store/settings/page";
-import SettingsProfilePage from "@renderer/pages/store/settings/profile/page";
-import POSPage from "@renderer/pages/store/sales/pos/page";
-
-
+import { useState, useEffect } from 'react'
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Toaster } from 'sonner'
+import LoginPage from './pages/auth/Login'
+import AdminDashboard from './pages/admin/Dashboard'
+import AdminLayout from './layouts/AdminLayout'
+import RolesPage from './pages/admin/roles/page'
+import RoleDetails from './pages/admin/roles/detail'
+import UsersPage from './pages/admin/users/page'
+import StoresPage from './pages/admin/stores/page'
+import StoreDetails from './pages/admin/stores/detail'
+import ProfilePage from './pages/admin/profile/page'
+import StoreLayout from './layouts/StoreLayout'
+import ProductsPage from '@renderer/pages/store/inventory/products/page'
+import ProductDetails from '@renderer/pages/store/inventory/products/detail'
+import CategoriesPage from '@renderer/pages/store/inventory/categories/page'
+import BrandsPage from '@renderer/pages/store/inventory/brands/page'
+import SuppliersPage from '@renderer/pages/store/purchases/suppliers/page'
+import PurchaseOrdersPage from '@renderer/pages/store/purchases/orders/page'
+import CreatePurchaseOrder from '@renderer/pages/store/purchases/orders/create/page'
+import EditPurchaseOrder from '@renderer/pages/store/purchases/orders/edit'
+import PurchaseOrderDetails from './pages/store/purchases/orders/detail'
+import StoreSettingsPage from '@renderer/pages/store/settings/page'
+import SettingsProfilePage from '@renderer/pages/store/settings/profile/page'
+import POSPage from '@renderer/pages/store/sales/pos/page'
+import StoreDashboard from '@renderer/pages/store/dashboard/page'
+import StoreSelectionPage from './pages/auth/StoreSelectionPage'
+import ReportsPage from './pages/store/reports/page'
+import SalesReportsPage from './pages/store/reports/sales/page'
+import AccountingPage from './pages/store/accounting/page'
+import AccountsPage from './pages/store/accounting/accounts/page'
+import ExpensesPage from './pages/store/accounting/expenses/page'
 
 interface User {
-  id: string;
-  email: string;
-  fullName: string;
-  globalRole: 'ADMIN' | 'USER';
+  id: string
+  email: string
+  fullName: string
+  globalRole: 'ADMIN' | 'USER'
 }
 
 function ProtectedRoute({
   children,
   user,
-  allowedRoles
+  allowedRoles,
+  requireStore = false
 }: {
-  children: React.ReactNode;
-  user: User | null;
-  allowedRoles?: string[];
+  children: React.ReactNode
+  user: User | null
+  allowedRoles?: string[]
+  requireStore?: boolean
 }) {
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace />
   }
 
   if (allowedRoles && !allowedRoles.includes(user.globalRole)) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/dashboard" replace />
   }
 
-  return <>{children}</>;
+  if (requireStore && user.globalRole !== 'ADMIN') {
+    const selectedStore = localStorage.getItem('selectedStore')
+    if (!selectedStore) {
+      return <Navigate to="/select-store" replace />
+    }
+  }
+
+  return <>{children}</>
 }
 
 function App(): React.JSX.Element {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('user');
+    const savedUser = localStorage.getItem('user')
     if (savedUser) {
-      setUser(JSON.parse(savedUser));
+      setUser(JSON.parse(savedUser))
     }
-  }, []);
+  }, [])
 
   const handleLoginSuccess = (userData: User) => {
-    setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
-  };
+    setUser(userData)
+    localStorage.setItem('user', JSON.stringify(userData))
+  }
 
   const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-  };
+    setUser(null)
+    localStorage.removeItem('user')
+    localStorage.removeItem('token')
+    localStorage.removeItem('selectedStore')
+  }
 
   return (
     <>
@@ -86,6 +101,15 @@ function App(): React.JSX.Element {
               ) : (
                 <LoginPage onLoginSuccess={handleLoginSuccess} />
               )
+            }
+          />
+
+          <Route
+            path="/select-store"
+            element={
+              <ProtectedRoute user={user}>
+                <StoreSelectionPage />
+              </ProtectedRoute>
             }
           />
 
@@ -109,12 +133,12 @@ function App(): React.JSX.Element {
           <Route
             path="/dashboard"
             element={
-              <ProtectedRoute user={user}>
+              <ProtectedRoute user={user} requireStore={true}>
                 <StoreLayout onLogout={handleLogout} />
               </ProtectedRoute>
             }
           >
-            <Route index element={<div>Store Dashboard (Coming Soon)</div>} />
+            <Route index element={<StoreDashboard />} />
             <Route path="pos" element={<POSPage />} />
             <Route path="inventory/products" element={<ProductsPage />} />
             <Route path="inventory/products/:id" element={<ProductDetails />} />
@@ -127,11 +151,15 @@ function App(): React.JSX.Element {
             <Route path="purchases/orders/:id" element={<PurchaseOrderDetails />} />
             <Route path="settings" element={<StoreSettingsPage />} />
             <Route path="settings/profile" element={<SettingsProfilePage />} />
+            <Route path="reports" element={<ReportsPage />} />
+            <Route path="reports/sales" element={<SalesReportsPage />} />
+            <Route path="accounting" element={<AccountingPage />} />
+            <Route path="accounting/accounts" element={<AccountsPage />} />
+            <Route path="accounting/expenses" element={<ExpensesPage />} />
           </Route>
 
           <Route
             path="/"
-
             element={
               user ? (
                 <Navigate to={user.globalRole === 'ADMIN' ? '/admin' : '/dashboard'} replace />
@@ -144,7 +172,7 @@ function App(): React.JSX.Element {
       </HashRouter>
       <Toaster position="top-right" />
     </>
-  );
+  )
 }
 
-export default App;
+export default App

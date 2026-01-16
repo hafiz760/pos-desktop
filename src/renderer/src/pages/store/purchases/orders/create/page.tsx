@@ -1,198 +1,175 @@
-import { useState, useEffect } from "react";
-import { Plus, Search, X, PlusCircle, ArrowLeft, UserPlus } from "lucide-react";
-import { LoadingButton } from "@renderer/components/ui/loading-button";
-import { Button } from "@renderer/components/ui/button";
-import { useNavigate } from "react-router-dom";
-import { Input } from "@renderer/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@renderer/components/ui/card";
-import { toast } from "sonner";
-import { format } from "date-fns";
+import { useState, useEffect } from 'react'
+import { Search, X, PlusCircle, ArrowLeft, UserPlus } from 'lucide-react'
+import { LoadingButton } from '@renderer/components/ui/loading-button'
+import { Button } from '@renderer/components/ui/button'
+import { useNavigate } from 'react-router-dom'
+import { Input } from '@renderer/components/ui/input'
+import { Card, CardContent } from '@renderer/components/ui/card'
+import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-} from "@renderer/components/ui/dialog";
+  DialogFooter
+} from '@renderer/components/ui/dialog'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
-} from "@renderer/components/ui/select";
-import { z } from "zod";
-import {
-  useForm,
-  useFieldArray,
-  SubmitHandler,
-  useWatch,
-} from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+  SelectValue
+} from '@renderer/components/ui/select'
+import { z } from 'zod'
+import { useForm, useFieldArray, SubmitHandler, useWatch } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import {
   Form,
   FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
-} from "@renderer/components/ui/form";
+  FormMessage
+} from '@renderer/components/ui/form'
 
 const purchaseItemSchema = z.object({
-  product: z.string().min(1, "Product is required"),
+  product: z.string().min(1, 'Product is required'),
   productName: z.string().optional(),
-  quantity: z.preprocess(
-    (val) => Number(val),
-    z.number().min(1, "Quantity must be at least 1")
-  ),
-  unitCost: z.preprocess(
-    (val) => Number(val),
-    z.number().min(0, "Unit cost cannot be negative")
-  ),
+  quantity: z.preprocess((val) => Number(val), z.number().min(1, 'Quantity must be at least 1')),
+  unitCost: z.preprocess((val) => Number(val), z.number().min(0, 'Unit cost cannot be negative')),
   sellingPrice: z.preprocess(
-    (val) => (val === "" || val === null ? undefined : Number(val)),
-    z.number().min(0, "Selling price cannot be negative").optional()
-  ),
-});
+    (val) => (val === '' || val === null ? undefined : Number(val)),
+    z.number().min(0, 'Selling price cannot be negative').optional()
+  )
+})
 
 const purchaseOrderSchema = z.object({
-  supplier: z.string().min(1, "Supplier is required"),
-  items: z.array(purchaseItemSchema).min(1, "At least one item is required"),
-  notes: z.string().default(""),
-  discountAmount: z.preprocess(
-    (val) => Number(val),
-    z.number().min(0).default(0)
-  ),
+  supplier: z.string().min(1, 'Supplier is required'),
+  items: z.array(purchaseItemSchema).min(1, 'At least one item is required'),
+  notes: z.string().default(''),
+  discountAmount: z.preprocess((val) => Number(val), z.number().min(0).default(0)),
   taxAmount: z.preprocess((val) => Number(val), z.number().min(0).default(0)),
-  shippingCost: z.preprocess(
-    (val) => Number(val),
-    z.number().min(0).default(0)
-  ),
-});
+  shippingCost: z.preprocess((val) => Number(val), z.number().min(0).default(0))
+})
 
 type IPurchaseItem = {
-  product: string;
-  productName?: string;
-  quantity: number;
-  unitCost: number;
-  sellingPrice?: number | null;
-};
+  product: string
+  productName?: string
+  quantity: number
+  unitCost: number
+  sellingPrice?: number | null
+}
 
 type PurchaseOrderFormValues = {
-  supplier: string;
-  items: IPurchaseItem[];
-  notes: string;
-  discountAmount: number;
-  taxAmount: number;
-  shippingCost: number;
-};
+  supplier: string
+  items: IPurchaseItem[]
+  notes: string
+  discountAmount: number
+  taxAmount: number
+  shippingCost: number
+}
 
 const supplierSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  contactPerson: z.string().optional().or(z.literal("")),
-  email: z.string().email("Invalid email address").optional().or(z.literal("")),
-  address: z.string().optional().or(z.literal("")),
-  city: z.string().optional().or(z.literal("")),
-  openingBalance: z.coerce.number().default(0),
-});
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  contactPerson: z.string().optional().or(z.literal('')),
+  email: z.string().email('Invalid email address').optional().or(z.literal('')),
+  address: z.string().optional().or(z.literal('')),
+  city: z.string().optional().or(z.literal('')),
+  openingBalance: z.coerce.number().default(0)
+})
 
-type SupplierFormValues = z.infer<typeof supplierSchema>;
+type SupplierFormValues = z.infer<typeof supplierSchema>
 
 export default function CreatePurchaseOrderPage() {
-  const [isBulkOpen, setIsBulkOpen] = useState(false);
-  const [productSearch, setProductSearch] = useState("");
-  const [showAutocomplete, setShowAutocomplete] = useState(false);
-  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
-  const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false);
-  const navigate = useNavigate();
+  const [productSearch, setProductSearch] = useState('')
+  const [showAutocomplete, setShowAutocomplete] = useState(false)
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0)
+  const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false)
+  const navigate = useNavigate()
 
-  const [suppliers, setSuppliers] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [currentStore, setCurrentStore] = useState<any>(null);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [suppliers, setSuppliers] = useState<any[]>([])
+  const [products, setProducts] = useState<any[]>([])
+  const [_isLoading, setIsLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [currentStore, setCurrentStore] = useState<any>(null)
+  const [currentUser, setCurrentUser] = useState<any>(null)
 
   useEffect(() => {
-    const storeData = localStorage.getItem('selectedStore');
+    const storeData = localStorage.getItem('selectedStore')
     if (storeData) {
-      setCurrentStore(JSON.parse(storeData));
+      setCurrentStore(JSON.parse(storeData))
     }
-  }, []);
+  }, [])
 
   const loadInitialData = async () => {
-    if (!currentStore?._id) return;
-    setIsLoading(true);
+    if (!currentStore?._id) return
+    setIsLoading(true)
     try {
       const [suppliersRes, productsRes] = await Promise.all([
         window.api.suppliers.getAll({ storeId: currentStore._id, pageSize: 1000 }),
-        window.api.products.getAll({ storeId: currentStore._id, pageSize: 1000 }),
-      ]);
-      if (suppliersRes.success) setSuppliers(suppliersRes.data);
-      if (productsRes.success) setProducts(productsRes.data);
+        window.api.products.getAll({ storeId: currentStore._id, pageSize: 1000 })
+      ])
+      if (suppliersRes.success) setSuppliers(suppliersRes.data)
+      if (productsRes.success) setProducts(productsRes.data)
     } catch (error) {
-      toast.error("Failed to load initial data");
+      toast.error('Failed to load initial data')
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
-    loadInitialData();
-    const userStr = localStorage.getItem('user');
+    loadInitialData()
+    const userStr = localStorage.getItem('user')
     if (userStr) {
-      const user = JSON.parse(userStr);
-      setCurrentUser(user);
+      const user = JSON.parse(userStr)
+      setCurrentUser(user)
     }
-  }, [currentStore?._id]);
+  }, [currentStore?._id])
 
   const form = useForm<PurchaseOrderFormValues>({
     resolver: zodResolver(purchaseOrderSchema) as any,
     defaultValues: {
-      supplier: "",
+      supplier: '',
       items: [],
-      notes: "",
+      notes: '',
       discountAmount: 0,
       taxAmount: 0,
-      shippingCost: 0,
-    },
-  });
+      shippingCost: 0
+    }
+  })
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
-    name: "items",
-  });
+    name: 'items'
+  })
 
   const supplierForm = useForm<SupplierFormValues>({
     resolver: zodResolver(supplierSchema) as any,
     defaultValues: {
-      name: "",
-      contactPerson: "",
-      email: "",
-      address: "",
-      city: "",
-      openingBalance: 0,
-    },
-  });
+      name: '',
+      contactPerson: '',
+      email: '',
+      address: '',
+      city: '',
+      openingBalance: 0
+    }
+  })
 
-  const watchedItems = useWatch({ control: form.control, name: "items" }) || [];
-  const watchedTax = useWatch({ control: form.control, name: "taxAmount" }) || 0;
-  const watchedShipping = useWatch({ control: form.control, name: "shippingCost" }) || 0;
-  const watchedDiscount = useWatch({ control: form.control, name: "discountAmount" }) || 0;
+  const watchedItems = useWatch({ control: form.control, name: 'items' }) || []
+  const watchedTax = useWatch({ control: form.control, name: 'taxAmount' }) || 0
+  const watchedShipping = useWatch({ control: form.control, name: 'shippingCost' }) || 0
+  const watchedDiscount = useWatch({ control: form.control, name: 'discountAmount' }) || 0
 
   const subtotal = watchedItems.reduce(
     (sum, item) => sum + (item.quantity || 0) * (item.unitCost || 0),
     0
-  );
-  const total =
-    subtotal +
-    Number(watchedTax) +
-    Number(watchedShipping) -
-    Number(watchedDiscount);
+  )
+  const total = subtotal + Number(watchedTax) + Number(watchedShipping) - Number(watchedDiscount)
 
   const onSubmit: SubmitHandler<PurchaseOrderFormValues> = async (values) => {
-    if (!currentStore?._id) return;
-    setIsSubmitting(true);
+    if (!currentStore?._id) return
+    setIsSubmitting(true)
     try {
       const result = await window.api.purchaseOrders.create({
         ...values,
@@ -200,45 +177,48 @@ export default function CreatePurchaseOrderPage() {
         subtotal,
         totalAmount: total,
         purchaseDate: new Date(),
-        status: "DRAFT",
+        status: 'DRAFT',
         createdBy: currentUser?.id || currentUser?._id,
         items: values.items.map((item) => ({
           ...item,
-          totalCost: Number(item.quantity) * Number(item.unitCost),
-        })),
-      });
+          totalCost: Number(item.quantity) * Number(item.unitCost)
+        }))
+      })
 
       if (result.success) {
-        toast.success("Purchase order created");
-        navigate("/dashboard/purchases/orders");
+        toast.success('Purchase order created')
+        navigate('/dashboard/purchases/orders')
       } else {
-        toast.error(result.error);
+        toast.error(result.error)
       }
     } catch (error: any) {
-      toast.error(error.message || "An error occurred");
+      toast.error(error.message || 'An error occurred')
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false)
     }
-  };
+  }
 
   const onSupplierSubmit: SubmitHandler<SupplierFormValues> = async (values) => {
-    if (!currentStore?._id) return;
+    if (!currentStore?._id) return
     try {
-      const result = await window.api.suppliers.create({ ...values, store: currentStore._id });
+      const result = await window.api.suppliers.create({ ...values, store: currentStore._id })
       if (result.success) {
-        toast.success("Supplier created successfully");
-        const suppliersRes = await window.api.suppliers.getAll({ storeId: currentStore._id, pageSize: 1000 });
-        if (suppliersRes.success) setSuppliers(suppliersRes.data);
-        form.setValue("supplier", result.data._id);
-        supplierForm.reset();
-        setIsAddSupplierOpen(false);
+        toast.success('Supplier created successfully')
+        const suppliersRes = await window.api.suppliers.getAll({
+          storeId: currentStore._id,
+          pageSize: 1000
+        })
+        if (suppliersRes.success) setSuppliers(suppliersRes.data)
+        form.setValue('supplier', result.data._id)
+        supplierForm.reset()
+        setIsAddSupplierOpen(false)
       } else {
-        toast.error(result.error);
+        toast.error(result.error)
       }
     } catch (error: any) {
-      toast.error(error.message || "An error occurred");
+      toast.error(error.message || 'An error occurred')
     }
-  };
+  }
 
   if (!currentStore) {
     return (
@@ -246,7 +226,7 @@ export default function CreatePurchaseOrderPage() {
         <h2 className="text-2xl font-bold">No Store Selected</h2>
         <p className="text-muted-foreground">Please select a store to create purchase orders.</p>
       </div>
-    );
+    )
   }
 
   return (
@@ -264,19 +244,14 @@ export default function CreatePurchaseOrderPage() {
           <h2 className="text-3xl font-bold tracking-tight text-foreground">
             Create Purchase Order
           </h2>
-          <p className="text-muted-foreground">
-            Create a new purchase order for suppliers
-          </p>
+          <p className="text-muted-foreground">Create a new purchase order for suppliers</p>
         </div>
       </div>
 
       <Card className="bg-card border-border text-foreground">
         <CardContent className="pt-6">
           <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="flex flex-col gap-6"
-            >
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-6">
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -285,10 +260,7 @@ export default function CreatePurchaseOrderPage() {
                     <FormItem>
                       <FormLabel>Supplier</FormLabel>
                       <div className="flex gap-2">
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                        >
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger className="bg-muted border-border flex-1">
                               <SelectValue placeholder="Select Supplier" />
@@ -338,10 +310,8 @@ export default function CreatePurchaseOrderPage() {
 
               <div className="mb-2">
                 <h3 className="text-sm font-semibold text-foreground">
-                  Order Items{" "}
-                  <span className="text-muted-foreground">
-                    ({fields.length} products)
-                  </span>
+                  Order Items{' '}
+                  <span className="text-muted-foreground">({fields.length} products)</span>
                 </h3>
               </div>
 
@@ -354,62 +324,60 @@ export default function CreatePurchaseOrderPage() {
                       className="bg-background border-border pl-10 h-9"
                       value={productSearch}
                       onChange={(e) => {
-                        setProductSearch(e.target.value);
-                        setShowAutocomplete(e.target.value.length > 0);
-                        setSelectedSuggestionIndex(0);
+                        setProductSearch(e.target.value)
+                        setShowAutocomplete(e.target.value.length > 0)
+                        setSelectedSuggestionIndex(0)
                       }}
                       onFocus={() => {
                         if (productSearch.length > 0) {
-                          setShowAutocomplete(true);
+                          setShowAutocomplete(true)
                         }
                       }}
                       onBlur={() => {
-                        setTimeout(() => setShowAutocomplete(false), 200);
+                        setTimeout(() => setShowAutocomplete(false), 200)
                       }}
                       onKeyDown={(e) => {
-                        const searchLower = productSearch.toLowerCase();
+                        const searchLower = productSearch.toLowerCase()
                         const filteredProducts = products.filter(
                           (p: any) =>
                             p.name?.toLowerCase().includes(searchLower) ||
                             p.sku?.toLowerCase().includes(searchLower) ||
                             p.barcode?.toLowerCase().includes(searchLower)
-                        );
+                        )
 
-                        if (e.key === "ArrowDown") {
-                          e.preventDefault();
+                        if (e.key === 'ArrowDown') {
+                          e.preventDefault()
                           setSelectedSuggestionIndex((prev) =>
                             prev < filteredProducts.length - 1 ? prev + 1 : prev
-                          );
-                        } else if (e.key === "ArrowUp") {
-                          e.preventDefault();
-                          setSelectedSuggestionIndex((prev) =>
-                            prev > 0 ? prev - 1 : 0
-                          );
-                        } else if (e.key === "Enter") {
-                          e.preventDefault();
+                          )
+                        } else if (e.key === 'ArrowUp') {
+                          e.preventDefault()
+                          setSelectedSuggestionIndex((prev) => (prev > 0 ? prev - 1 : 0))
+                        } else if (e.key === 'Enter') {
+                          e.preventDefault()
                           if (filteredProducts.length > 0) {
-                            const selectedProduct = filteredProducts[selectedSuggestionIndex];
+                            const selectedProduct = filteredProducts[selectedSuggestionIndex]
                             if (selectedProduct) {
                               const existingIndex = watchedItems.findIndex(
                                 (item: any) => item.product === selectedProduct._id
-                              );
+                              )
 
                               if (existingIndex !== -1) {
-                                toast.info("Product already added! Updating quantity...");
-                                setProductSearch("");
-                                setShowAutocomplete(false);
-                                setSelectedSuggestionIndex(0);
+                                toast.info('Product already added! Updating quantity...')
+                                setProductSearch('')
+                                setShowAutocomplete(false)
+                                setSelectedSuggestionIndex(0)
                               } else {
                                 append({
                                   product: selectedProduct._id,
                                   productName: selectedProduct.name,
                                   quantity: 1,
                                   unitCost: selectedProduct.buyingPrice,
-                                  sellingPrice: selectedProduct.sellingPrice,
-                                });
-                                setProductSearch("");
-                                setShowAutocomplete(false);
-                                setSelectedSuggestionIndex(0);
+                                  sellingPrice: selectedProduct.sellingPrice
+                                })
+                                setProductSearch('')
+                                setShowAutocomplete(false)
+                                setSelectedSuggestionIndex(0)
                               }
                             }
                           }
@@ -420,47 +388,48 @@ export default function CreatePurchaseOrderPage() {
                     {showAutocomplete && productSearch && (
                       <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-[300px] overflow-y-auto z-50">
                         {(() => {
-                          const searchLower = productSearch.toLowerCase();
+                          const searchLower = productSearch.toLowerCase()
                           const filteredProducts = products.filter(
                             (p: any) =>
                               p.name?.toLowerCase().includes(searchLower) ||
                               p.sku?.toLowerCase().includes(searchLower) ||
                               p.barcode?.toLowerCase().includes(searchLower)
-                          );
+                          )
 
                           if (filteredProducts.length === 0) {
                             return (
                               <div className="p-3 text-sm text-muted-foreground text-center">
                                 No products found
                               </div>
-                            );
+                            )
                           }
 
                           return filteredProducts.map((product: any, index: number) => (
                             <div
                               key={product._id}
-                              className={`p-2 cursor-pointer transition-colors border-b border-border last:border-0 ${index === selectedSuggestionIndex
-                                ? "bg-[#4ade80]/10 border-l-2 border-l-[#4ade80]"
-                                : "hover:bg-muted"
-                                }`}
+                              className={`p-2 cursor-pointer transition-colors border-b border-border last:border-0 ${
+                                index === selectedSuggestionIndex
+                                  ? 'bg-[#4ade80]/10 border-l-2 border-l-[#4ade80]'
+                                  : 'hover:bg-muted'
+                              }`}
                               onClick={() => {
                                 const existingIndex = watchedItems.findIndex(
                                   (item: any) => item.product === product._id
-                                );
+                                )
 
                                 if (existingIndex !== -1) {
-                                  toast.info("Product already added!");
+                                  toast.info('Product already added!')
                                 } else {
                                   append({
                                     product: product._id,
                                     productName: product.name,
                                     quantity: 1,
                                     unitCost: product.buyingPrice,
-                                    sellingPrice: product.sellingPrice,
-                                  });
+                                    sellingPrice: product.sellingPrice
+                                  })
                                 }
-                                setProductSearch("");
-                                setShowAutocomplete(false);
+                                setProductSearch('')
+                                setShowAutocomplete(false)
                               }}
                             >
                               <div className="font-medium text-sm text-foreground">
@@ -474,7 +443,7 @@ export default function CreatePurchaseOrderPage() {
                                 </span>
                               </div>
                             </div>
-                          ));
+                          ))
                         })()}
                       </div>
                     )}
@@ -495,12 +464,11 @@ export default function CreatePurchaseOrderPage() {
                     </thead>
                     <tbody className="divide-y divide-border">
                       {fields.map((field, index) => (
-                        <tr
-                          key={field.id}
-                          className="hover:bg-muted/30 transition-colors"
-                        >
+                        <tr key={field.id} className="hover:bg-muted/30 transition-colors">
                           <td className="p-2">
-                            <span className="font-medium">{watchedItems[index]?.productName || "Select Product"}</span>
+                            <span className="font-medium">
+                              {watchedItems[index]?.productName || 'Select Product'}
+                            </span>
                           </td>
                           <td className="p-1">
                             <FormField
@@ -541,7 +509,7 @@ export default function CreatePurchaseOrderPage() {
                               control={form.control}
                               name={`items.${index}.sellingPrice`}
                               render={({ field }) => {
-                                const { value, ...fieldProps } = field;
+                                const { value, ...fieldProps } = field
                                 return (
                                   <FormItem className="m-0">
                                     <FormControl>
@@ -549,12 +517,12 @@ export default function CreatePurchaseOrderPage() {
                                         type="number"
                                         placeholder="Optional"
                                         {...fieldProps}
-                                        value={value ?? ""}
+                                        value={value ?? ''}
                                         className="h-8 bg-transparent border-none text-right focus:bg-muted"
                                       />
                                     </FormControl>
                                   </FormItem>
-                                );
+                                )
                               }}
                             />
                           </td>
@@ -587,7 +555,7 @@ export default function CreatePurchaseOrderPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      toast.info("Please use the search bar to add products.");
+                      toast.info('Please use the search bar to add products.')
                     }}
                     className="text-xs h-8"
                   >
@@ -603,7 +571,9 @@ export default function CreatePurchaseOrderPage() {
                   <span className="text-sm font-bold">Rs. {subtotal.toLocaleString()}</span>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="text-[10px] uppercase font-bold text-red-400">Discount (-Rs)</span>
+                  <span className="text-[10px] uppercase font-bold text-red-400">
+                    Discount (-Rs)
+                  </span>
                   <FormField
                     control={form.control}
                     name="discountAmount"
@@ -658,7 +628,9 @@ export default function CreatePurchaseOrderPage() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-1 items-end justify-center">
-                  <span className="text-[10px] text-[#4ade80] uppercase font-bold">Grand Total</span>
+                  <span className="text-[10px] text-[#4ade80] uppercase font-bold">
+                    Grand Total
+                  </span>
                   <span className="text-xl font-black text-[#4ade80]">
                     Rs. {total.toLocaleString()}
                   </span>
@@ -728,13 +700,20 @@ export default function CreatePurchaseOrderPage() {
                 />
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsAddSupplierOpen(false)}>Cancel</Button>
-                <Button type="submit" className="bg-[#4ade80] hover:bg-[#22c55e] text-black font-semibold">Create Supplier</Button>
+                <Button type="button" variant="outline" onClick={() => setIsAddSupplierOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-[#4ade80] hover:bg-[#22c55e] text-black font-semibold"
+                >
+                  Create Supplier
+                </Button>
               </DialogFooter>
             </form>
           </Form>
         </DialogContent>
       </Dialog>
     </div>
-  );
+  )
 }

@@ -1,44 +1,44 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import { Search, FileSpreadsheet, FileText, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useState } from 'react'
+import { Search, FileSpreadsheet, FileText, Plus } from 'lucide-react'
+import { Button } from '@renderer/components/ui/button'
+import { Input } from '@renderer/components/ui/input'
 import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { exportToExcel, exportToPDF } from "@/lib/export";
-import { Pagination } from "@/components/ui/pagination";
+  TableRow
+} from '@renderer/components/ui/table'
+import { Card, CardContent, CardHeader } from '@renderer/components/ui/card'
+import { exportToExcel, exportToPDF } from '@renderer/lib/export'
+import { Pagination } from '@renderer/components/ui/pagination'
 
 interface DataPageProps {
-  title: string;
-  description: string;
-  data: any[];
+  title: string
+  description: string
+  data: any[]
   columns: {
-    header: string;
-    accessor: string;
-    render?: (item: any, index: number) => React.ReactNode;
-  }[];
-  onAdd?: () => void;
-  addLabel?: string;
-  searchPlaceholder?: string;
-  fileName?: string;
-  isLoading?: boolean;
+    header: string
+    accessor: string
+    render?: (item: any, index: number) => React.ReactNode
+  }[]
+  onAdd?: () => void
+  addLabel?: string
+  searchPlaceholder?: string
+  fileName?: string
+  isLoading?: boolean
   // Pagination props
-  currentPage?: number;
-  totalPages?: number;
-  totalRecords?: number;
-  pageSize?: number;
-  onPageChange?: (page: number) => void;
-  onPageSizeChange?: (pageSize: number) => void;
-  onSearchChange?: (search: string) => void;
-  searchTerm?: string;
+  currentPage?: number
+  totalPages?: number
+  totalRecords?: number
+  pageSize?: number
+  onPageChange?: (page: number) => void
+  onPageSizeChange?: (pageSize: number) => void
+  onSearchChange?: (search: string) => void
+  searchTerm?: string
 }
 
 export function DataPage({
@@ -47,9 +47,9 @@ export function DataPage({
   data,
   columns,
   onAdd,
-  addLabel = "Add New",
-  searchPlaceholder = "Search...",
-  fileName = "export-data",
+  addLabel = 'Add New',
+  searchPlaceholder = 'Search...',
+  fileName = 'export-data',
   isLoading = false,
   currentPage = 1,
   totalPages = 1,
@@ -58,61 +58,54 @@ export function DataPage({
   onPageChange,
   onPageSizeChange,
   onSearchChange,
-  searchTerm: externalSearchTerm,
+  searchTerm: externalSearchTerm
 }: DataPageProps) {
-  const [internalSearchTerm, setInternalSearchTerm] = useState("");
+  const [internalSearchTerm, setInternalSearchTerm] = useState('')
 
   // Use external search term if provided, otherwise use internal
-  const searchTerm =
-    externalSearchTerm !== undefined ? externalSearchTerm : internalSearchTerm;
-  const setSearchTerm = onSearchChange || setInternalSearchTerm;
+  const searchTerm = externalSearchTerm !== undefined ? externalSearchTerm : internalSearchTerm
+  const setSearchTerm = onSearchChange || setInternalSearchTerm
 
   // Filter data only if we don't have server-side pagination
-  const shouldFilterLocally = !onPageChange;
+  const shouldFilterLocally = !onPageChange
   const filteredData = shouldFilterLocally
     ? data.filter((item) =>
         Object.values(item).some((val) =>
           String(val).toLowerCase().includes(searchTerm.toLowerCase())
         )
       )
-    : data;
+    : data
 
   const handleExportExcel = () => {
     // Prepare data for export (flatten objects if needed)
     const exportData = filteredData.map((item) => {
-      const flatItem: any = {};
+      const flatItem: any = {}
       columns.forEach((col) => {
-        const val = col.accessor
-          .split(".")
-          .reduce((obj, key) => obj?.[key], item);
-        flatItem[col.header] = val;
-      });
-      return flatItem;
-    });
-    exportToExcel(exportData, fileName, title);
-  };
+        const val = col.accessor.split('.').reduce((obj, key) => obj?.[key], item)
+        flatItem[col.header] = val
+      })
+      return flatItem
+    })
+    exportToExcel(exportData, fileName, title)
+  }
 
   const handleExportPDF = () => {
     const exportData = filteredData.map((item) => {
-      const flatItem: any = {};
+      const flatItem: any = {}
       columns.forEach((col) => {
-        const val = col.accessor
-          .split(".")
-          .reduce((obj, key) => obj?.[key], item);
-        flatItem[col.header] = val;
-      });
-      return flatItem;
-    });
-    exportToPDF(exportData, fileName, title);
-  };
+        const val = col.accessor.split('.').reduce((obj, key) => obj?.[key], item)
+        flatItem[col.header] = val
+      })
+      return flatItem
+    })
+    exportToPDF(exportData, fileName, title)
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">
-            {title}
-          </h2>
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">{title}</h2>
           <p className="text-muted-foreground">{description}</p>
         </div>
         {onAdd && (
@@ -164,10 +157,7 @@ export function DataPage({
               <TableHeader className="border-border bg-muted/50">
                 <TableRow className="hover:bg-transparent border-border">
                   {columns.map((col, idx) => (
-                    <TableHead
-                      key={idx}
-                      className="text-muted-foreground font-semibold py-4"
-                    >
+                    <TableHead key={idx} className="text-muted-foreground font-semibold py-4">
                       {col.header}
                     </TableHead>
                   ))}
@@ -176,10 +166,7 @@ export function DataPage({
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="text-center py-20"
-                    >
+                    <TableCell colSpan={columns.length} className="text-center py-20">
                       <div className="flex items-center justify-center">
                         <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#4ade80] border-t-transparent"></div>
                       </div>
@@ -204,9 +191,7 @@ export function DataPage({
                         <TableCell key={colIdx} className="py-4 text-sm">
                           {col.render
                             ? col.render(item, rowIdx)
-                            : col.accessor
-                                .split(".")
-                                .reduce((obj, key) => obj?.[key], item)}
+                            : col.accessor.split('.').reduce((obj, key) => obj?.[key], item)}
                         </TableCell>
                       ))}
                     </TableRow>
@@ -228,5 +213,5 @@ export function DataPage({
         )}
       </Card>
     </div>
-  );
+  )
 }

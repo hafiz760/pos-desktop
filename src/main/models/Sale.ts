@@ -1,179 +1,185 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document } from 'mongoose'
 
 export interface ISaleItem {
-    product: mongoose.Types.ObjectId;
-    productName: string;
-    quantity: number;
-    costPrice: number;
-    sellingPrice: number;
-    discountAmount: number;
-    totalAmount: number;
-    profitAmount: number;
+  product: mongoose.Types.ObjectId
+  productName: string
+  quantity: number
+  costPrice: number
+  sellingPrice: number
+  discountAmount: number
+  totalAmount: number
+  profitAmount: number
 }
 
 export interface ISale extends Document {
-    invoiceNumber: string;
-    customerName?: string;
-    customerPhone?: string;
-    customerEmail?: string;
-    saleDate: Date;
-    items: ISaleItem[];
-    subtotal: number;
-    discountAmount: number;
-    discountPercent?: number;
-    taxAmount: number;
-    totalAmount: number;
-    paidAmount: number;
-    paymentStatus: 'PAID' | 'PENDING' | 'PARTIAL';
-    paymentMethod: string;
-    profitAmount: number;
-    notes?: string;
-    soldBy: mongoose.Types.ObjectId;
-    store: mongoose.Types.ObjectId;
-    createdAt: Date;
-    updatedAt: Date;
+  invoiceNumber: string
+  customerName?: string
+  customerPhone?: string
+  customerEmail?: string
+  saleDate: Date
+  items: ISaleItem[]
+  subtotal: number
+  discountAmount: number
+  discountPercent?: number
+  taxAmount: number
+  totalAmount: number
+  paidAmount: number
+  paymentStatus: 'PAID' | 'PENDING' | 'PARTIAL'
+  paymentMethod: string
+  profitAmount: number
+  notes?: string
+  soldBy: mongoose.Types.ObjectId
+  store: mongoose.Types.ObjectId
+  createdAt: Date
+  updatedAt: Date
 }
 
-const SaleItemSchema = new Schema<ISaleItem>({
+const SaleItemSchema = new Schema<ISaleItem>(
+  {
     product: {
-        type: Schema.Types.ObjectId,
-        ref: 'Product',
-        required: true
+      type: Schema.Types.ObjectId,
+      ref: 'Product',
+      required: true
     },
     productName: {
-        type: String,
-        required: true
+      type: String,
+      required: true
     },
     quantity: {
-        type: Number,
-        required: true,
-        min: 1
+      type: Number,
+      required: true,
+      min: 1
     },
     costPrice: {
-        type: Number,
-        required: true,
-        min: 0
+      type: Number,
+      required: true,
+      min: 0
     },
     sellingPrice: {
-        type: Number,
-        required: true,
-        min: 0
+      type: Number,
+      required: true,
+      min: 0
     },
     discountAmount: {
-        type: Number,
-        default: 0,
-        min: 0
+      type: Number,
+      default: 0,
+      min: 0
     },
     totalAmount: {
-        type: Number,
-        required: true,
-        min: 0
+      type: Number,
+      required: true,
+      min: 0
     },
     profitAmount: {
-        type: Number,
-        required: true
+      type: Number,
+      required: true
     }
-}, { _id: false });
+  },
+  { _id: false }
+)
 
-const SaleSchema = new Schema<ISale>({
+const SaleSchema = new Schema<ISale>(
+  {
     invoiceNumber: {
-        type: String,
-        required: true,
-        unique: true
+      type: String,
+      required: true,
+      unique: true
     },
     customerName: {
-        type: String
+      type: String
     },
     customerPhone: {
-        type: String
+      type: String
     },
     customerEmail: {
-        type: String,
-        lowercase: true
+      type: String,
+      lowercase: true
     },
     saleDate: {
-        type: Date,
-        required: true,
-        default: Date.now
+      type: Date,
+      required: true,
+      default: Date.now
     },
     items: [SaleItemSchema],
     subtotal: {
-        type: Number,
-        required: true,
-        min: 0
+      type: Number,
+      required: true,
+      min: 0
     },
     discountAmount: {
-        type: Number,
-        default: 0,
-        min: 0
+      type: Number,
+      default: 0,
+      min: 0
     },
     discountPercent: {
-        type: Number,
-        min: 0,
-        max: 100
+      type: Number,
+      min: 0,
+      max: 100
     },
     taxAmount: {
-        type: Number,
-        default: 0,
-        min: 0
+      type: Number,
+      default: 0,
+      min: 0
     },
     totalAmount: {
-        type: Number,
-        required: true,
-        min: 0
+      type: Number,
+      required: true,
+      min: 0
     },
     paidAmount: {
-        type: Number,
-        required: true,
-        min: 0
+      type: Number,
+      required: true,
+      min: 0
     },
     paymentStatus: {
-        type: String,
-        enum: ['PAID', 'PENDING', 'PARTIAL'],
-        default: 'PAID'
+      type: String,
+      enum: ['PAID', 'PENDING', 'PARTIAL'],
+      default: 'PAID'
     },
     paymentMethod: {
-        type: String,
-        required: true,
-        enum: ['Cash', 'Card', 'Bank Transfer', 'Installment']
+      type: String,
+      required: true,
+      enum: ['Cash', 'Card', 'Bank Transfer', 'Installment']
     },
     profitAmount: {
-        type: Number,
-        required: true
+      type: Number,
+      required: true
     },
     notes: {
-        type: String
+      type: String
     },
     soldBy: {
-        type: Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
     },
     store: {
-        type: Schema.Types.ObjectId,
-        ref: 'Store',
-        required: true
+      type: Schema.Types.ObjectId,
+      ref: 'Store',
+      required: true
     }
-}, {
+  },
+  {
     timestamps: true
-});
+  }
+)
 
 // Indexes
-SaleSchema.index({ invoiceNumber: 1 });
-SaleSchema.index({ saleDate: -1 });
-SaleSchema.index({ soldBy: 1 });
-SaleSchema.index({ paymentStatus: 1 });
 
-const SaleModel = mongoose.models.Sale || mongoose.model<ISale>('Sale', SaleSchema);
+SaleSchema.index({ saleDate: -1 })
+SaleSchema.index({ soldBy: 1 })
+SaleSchema.index({ paymentStatus: 1 })
+
+const SaleModel = mongoose.models.Sale || mongoose.model<ISale>('Sale', SaleSchema)
 
 if (mongoose.models.Sale && !SaleModel.schema.paths['store']) {
-    SaleModel.schema.add({
-        store: {
-            type: Schema.Types.ObjectId,
-            ref: 'Store',
-            required: true
-        }
-    });
+  SaleModel.schema.add({
+    store: {
+      type: Schema.Types.ObjectId,
+      ref: 'Store',
+      required: true
+    }
+  })
 }
 
-export default SaleModel;
+export default SaleModel
