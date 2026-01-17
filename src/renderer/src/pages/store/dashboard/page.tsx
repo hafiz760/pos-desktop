@@ -6,7 +6,8 @@ import {
   AlertCircle,
   ArrowUpRight,
   ArrowDownRight,
-  DollarSign
+  DollarSign,
+  Clock
 } from 'lucide-react'
 import {
   Card,
@@ -82,7 +83,7 @@ export default function DashboardPage() {
 
   // Check roles: If not ADMIN, show the simplified dashboard
   if (user?.globalRole !== 'ADMIN') {
-    return <SimpleDashboard stats={stats} user={user} />
+    return <SimpleDashboard stats={stats} />
   }
 
   // Render original Admin Dashboard
@@ -122,6 +123,14 @@ function AdminDashboard({ stats, user }: { stats: any; user: any }) {
       icon: AlertCircle,
       trend: 'down',
       color: 'text-red-400'
+    },
+    {
+      title: 'Pending Payments',
+      value: `Rs. ${stats?.totalPending?.toLocaleString() || 0}`,
+      change: 'Uncollected credit',
+      icon: Clock,
+      trend: 'up',
+      color: 'text-orange-500'
     }
   ]
 

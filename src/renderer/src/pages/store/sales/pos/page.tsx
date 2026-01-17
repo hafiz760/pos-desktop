@@ -33,13 +33,38 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from '@renderer/c
 import { useNavigate } from 'react-router-dom'
 import { printContent } from '@renderer/lib/print-utils'
 
+// Color mapping (named colors to hex values)
+const COLOR_MAP: { [key: string]: string } = {
+  Green: '#4ade80',
+  Blue: '#60a5fa',
+  Red: '#f87171',
+  Amber: '#fbbf24',
+  Violet: '#a78bfa',
+  Pink: '#f472b6',
+  Orange: '#fb923c',
+  Teal: '#2dd4bf',
+  Indigo: '#818cf8',
+  Emerald: '#34d399',
+  Yellow: '#fde047',
+  Fuchsia: '#e879f9',
+  Purple: '#c084fc',
+  Slate: '#94a3b8',
+  Stone: '#a8a29e',
+  Black: '#000000',
+  White: '#ffffff',
+  Gray: '#475569',
+  Crimson: '#ef4444',
+  Sky: '#3b82f6'
+}
+
 const checkoutSchema = z.object({
   customerName: z.string().optional().or(z.literal('')),
   customerPhone: z.string().optional().or(z.literal('')),
   customerEmail: z.string().email('Invalid email').optional().or(z.literal('')),
   discountPercent: z.number().min(0).max(100),
   discountAmount: z.number().min(0),
-  taxAmount: z.number().min(0)
+  taxAmount: z.number().min(0),
+  paymentMethod: z.enum(['Cash', 'Card', 'Bank Transfer', 'Installment', 'Credit'])
 })
 
 type CheckoutFormValues = z.infer<typeof checkoutSchema>
@@ -205,7 +230,8 @@ export default function POSPage() {
       customerEmail: '',
       discountPercent: 0,
       discountAmount: 0,
-      taxAmount: 0
+      taxAmount: 0,
+      paymentMethod: 'Cash'
     }
   })
 
@@ -256,6 +282,9 @@ export default function POSPage() {
         totalProfit -= effectiveDiscount
       }
 
+      const paidAmount = values.paymentMethod === 'Credit' ? 0 : total
+      const paymentStatus = values.paymentMethod === 'Credit' ? 'PENDING' : 'PAID'
+
       const salePayload = {
         store: currentStore._id,
         soldBy: user.id || user._id,
@@ -269,9 +298,9 @@ export default function POSPage() {
         taxAmount: values.taxAmount,
         discountAmount: effectiveDiscount,
         discountPercent: values.discountPercent,
-        paidAmount: total,
-        paymentMethod: 'Cash',
-        paymentStatus: 'PAID',
+        paidAmount: paidAmount,
+        paymentMethod: values.paymentMethod,
+        paymentStatus: paymentStatus,
         profitAmount: totalProfit,
         saleDate: new Date()
       }
@@ -384,55 +413,103 @@ export default function POSPage() {
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
               {filteredProducts.map((product: any) => (
                 <Card
                   key={product._id}
-                  className="bg-card border-border hover:border-[#4ade80] cursor-pointer transition-all group overflow-hidden shadow-sm flex flex-col h-full active:scale-95 duration-200"
+                  className="bg-card border-border hover:border-[#4ade80] cursor-pointer transition-all group overflow-hidden shadow-sm active:scale-95 duration-200"
                   onClick={() => addToCart(product)}
                 >
-                  <div className="h-28 bg-muted/40 flex items-center justify-center border-b border-border overflow-hidden relative">
-                    {product.images && product.images.length > 0 ? (
-                      <img
-                        src={product.images[0]}
-                        alt={product.name}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      />
-                    ) : (
-                      <div className="flex flex-col items-center gap-1 opacity-40">
-                        <Package className="w-8 h-8" />
-                        <span className="text-[8px] font-black uppercase tracking-wider">
-                          No Image
+                  <CardContent className="p-3">
+                    {/* Image - Rounded at top */}
+                    <div className="flex justify-center mb-3">
+                      {product.images && product.images.length > 0 ? (
+                        <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-border bg-muted/40 flex items-center justify-center">
+                          <img
+                            src={product.images[0]}
+                            alt={product.name}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-16 h-16 rounded-full bg-muted/40 flex items-center justify-center border-2 border-border">
+                          <Package className="w-7 h-7 text-muted-foreground/50" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Product Name */}
+                    <h3 className="font-bold text-sm text-foreground text-center mb-2 leading-tight group-hover:text-[#4ade80] transition-colors line-clamp-2 min-h-[2.5rem]">
+                      {product.name}
+                    </h3>
+
+                    {/* Details - Only show if values exist */}
+                    <div className="space-y-1 mb-3">
+                      {product.category?.name && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] text-muted-foreground uppercase font-bold">
+                            Cat:
+                          </span>
+                          <span className="text-[10px] text-foreground font-semibold truncate">
+                            {product.category.name}
+                          </span>
+                        </div>
+                      )}
+                      {product.brand?.name && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] text-muted-foreground uppercase font-bold">
+                            Brand:
+                          </span>
+                          <span className="text-[10px] text-foreground font-semibold truncate">
+                            {product.brand.name}
+                          </span>
+                        </div>
+                      )}
+                      {product.color && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] text-muted-foreground uppercase font-bold">
+                            Color:
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <div
+                              className="h-3 w-3 rounded-full border border-border"
+                              style={{ backgroundColor: COLOR_MAP[product.color] || product.color }}
+                            />
+                            <span className="text-[10px] text-foreground font-semibold">
+                              {product.color}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between border-t border-border pt-2">
+                      <div className="flex flex-col">
+                        <span className="text-base font-black text-[#4ade80]">
+                          Rs. {(product.sellingPrice || 0).toLocaleString()}
                         </span>
-                      </div>
-                    )}
-                    <div className="absolute top-1.5 right-1.5">
-                      <Badge
-                        variant="outline"
-                        className={`text-[9px] px-1.5 h-4 font-black shadow-sm ${(product.stockLevel || 0) < 5
-                          ? 'text-red-500 border-red-500/30 bg-white/90'
-                          : 'text-blue-500 border-blue-500/30 bg-white/90'
+                        {(product.buyingPrice || 0) > 0 && (
+                          <span className="text-[10px] text-muted-foreground uppercase font-bold">
+                            Cost: Rs. {product.buyingPrice?.toLocaleString()}
+                          </span>
+                        )}
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] px-1.5 h-4 font-bold w-fit mt-0.5 ${
+                            (product.stockLevel || 0) -
+                              (cart.find((c) => c._id === product._id)?.quantity || 0) <
+                            5
+                              ? 'text-red-500 border-red-500/30 bg-red-50'
+                              : 'text-green-500 border-green-500/30 bg-green-50'
                           }`}
-                      >
-                        {product.stockLevel || 0} IN
-                      </Badge>
-                    </div>
-                  </div>
-                  <CardContent className="p-3 flex flex-col flex-1 justify-between gap-2">
-                    <div>
-                      <h3 className="font-black text-sm text-foreground mb-0.5 leading-snug group-hover:text-[#4ade80] transition-colors line-clamp-2 h-10">
-                        {product.name}
-                      </h3>
-                      <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest truncate">
-                        {product.brand?.name || 'Generic'}
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-between border-t border-border pt-2 mt-auto">
-                      <span className="text-base font-black text-[#4ade80]">
-                        Rs. {(product.sellingPrice || 0).toLocaleString()}
-                      </span>
-                      <div className="h-6 w-6 rounded-full bg-[#4ade80]/10 flex items-center justify-center group-hover:bg-[#4ade80] transition-colors">
-                        <Plus className="w-3 h-3 text-[#4ade80] group-hover:text-black" />
+                        >
+                          {(product.stockLevel || 0) -
+                            (cart.find((c) => c._id === product._id)?.quantity || 0)}{' '}
+                          QTY
+                        </Badge>
+                      </div>
+                      <div className="h-8 w-8 rounded-full bg-[#4ade80]/10 flex items-center justify-center group-hover:bg-[#4ade80] transition-colors">
+                        <Plus className="w-4 h-4 text-[#4ade80] group-hover:text-black" />
                       </div>
                     </div>
                   </CardContent>
@@ -443,14 +520,14 @@ export default function POSPage() {
         </div>
       </div>
 
-      <Card className="w-full lg:w-[480px] h-full bg-card border-border flex flex-col shadow-2xl overflow-hidden shrink-0 rounded-2xl">
-        <CardHeader className="border-b border-border py-4 bg-muted/30 shrink-0">
+      <Card className="w-full lg:w-[380px] h-full bg-card border-border flex flex-col shadow-2xl overflow-hidden shrink-0 rounded-2xl">
+        <CardHeader className="border-b border-border py-3 bg-muted/30 shrink-0">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-3 text-foreground text-xl font-black uppercase tracking-tighter">
-              <ShoppingCart className="w-6 h-6 text-[#4ade80]" />
+            <CardTitle className="flex items-center gap-2 text-foreground text-lg font-black uppercase tracking-tighter">
+              <ShoppingCart className="w-5 h-5 text-[#4ade80]" />
               Current Order
             </CardTitle>
-            <Badge className="bg-[#4ade80] text-black hover:bg-[#4ade80] font-black h-8 px-4 text-sm">
+            <Badge className="bg-[#4ade80] text-black hover:bg-[#4ade80] font-black h-7 px-3 text-xs">
               {cart.length} {cart.length === 1 ? 'ITEM' : 'ITEMS'}
             </Badge>
           </div>
@@ -475,54 +552,61 @@ export default function POSPage() {
                 {cart.map((item) => (
                   <div
                     key={item._id}
-                    className="p-5 flex gap-4 hover:bg-muted/30 transition-colors group relative"
+                    className="p-2 flex gap-2 hover:bg-muted/30 transition-colors group relative"
                   >
                     <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-black text-foreground text-base leading-tight truncate pr-8">
+                      <div className="flex justify-between items-start mb-1">
+                        <h4 className="font-black text-foreground text-xs leading-tight truncate pr-6">
                           {item.name}
                         </h4>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-red-500/50 hover:text-red-500 hover:bg-red-500/10 absolute top-4 right-4"
+                          className="h-5 w-5 text-red-500/50 hover:text-red-500 hover:bg-red-500/10 absolute top-1 right-1"
                           onClick={() => removeFromCart(item._id)}
                         >
-                          <Trash2 className="w-5 h-5" />
+                          <Trash2 className="w-3 h-3" />
                         </Button>
                       </div>
 
-                      <div className="flex items-end justify-between gap-4">
-                        <div className="flex-1 space-y-1">
-                          <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest pl-1">
+                      <div className="flex items-end justify-between gap-2">
+                        <div className="flex-1 space-y-0.5">
+                          <label className="text-[8px] font-black uppercase text-muted-foreground tracking-widest pl-1">
                             Unit Price
                           </label>
-                          <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-2 border border-border">
-                            <span className="text-sm font-black text-[#4ade80]">Rs.</span>
+                          <div className="flex items-center gap-1 bg-muted/50 rounded-md p-1 border border-border">
+                            <span className="text-xs font-black text-[#4ade80]">Rs.</span>
                             <input
                               type="number"
                               className="w-full bg-transparent text-xl font-black text-[#4ade80] focus:outline-none placeholder:opacity-30"
-                              value={item.sellingPrice || 0}
-                              onChange={(e) => updatePrice(item._id, Number(e.target.value))}
+                              value={item.sellingPrice === 0 ? '' : item.sellingPrice}
+                              onChange={(e) =>
+                                updatePrice(
+                                  item._id,
+                                  e.target.value === '' ? 0 : Number(e.target.value)
+                                )
+                              }
+                              onFocus={(e) => e.target.select()}
+                              placeholder="0"
                             />
                           </div>
                         </div>
 
-                        <div className="shrink-0 flex flex-col items-center gap-1">
-                          <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
+                        <div className="shrink-0 flex flex-col items-center gap-0.5">
+                          <label className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">
                             Qty
                           </label>
-                          <div className="flex items-center bg-card rounded-xl border border-border p-1 shadow-sm">
+                          <div className="flex items-center bg-card rounded-md border border-border p-0.5 shadow-sm">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
                                 updateQuantity(item._id, -1)
                               }}
-                              className="h-10 w-10 rounded-lg hover:bg-muted flex items-center justify-center transition-colors text-[#4ade80]"
+                              className="h-6 w-6 rounded hover:bg-muted flex items-center justify-center transition-colors text-[#4ade80]"
                             >
-                              <Minus className="w-5 h-5" />
+                              <Minus className="w-3 h-3" />
                             </button>
-                            <span className="w-12 text-center text-xl font-black text-foreground">
+                            <span className="w-8 text-center text-sm font-black text-foreground">
                               {item.quantity}
                             </span>
                             <button
@@ -530,19 +614,19 @@ export default function POSPage() {
                                 e.stopPropagation()
                                 updateQuantity(item._id, 1)
                               }}
-                              className="h-10 w-10 rounded-lg hover:bg-muted flex items-center justify-center transition-colors text-[#4ade80]"
+                              className="h-6 w-6 rounded hover:bg-muted flex items-center justify-center transition-colors text-[#4ade80]"
                             >
-                              <Plus className="w-5 h-5" />
+                              <Plus className="w-3 h-3" />
                             </button>
                           </div>
                         </div>
                       </div>
 
-                      <div className="mt-4 flex justify-between items-center bg-[#4ade80]/5 p-3 rounded-lg border border-[#4ade80]/10">
-                        <span className="text-[10px] font-black uppercase text-[#4ade80] tracking-widest">
+                      <div className="mt-1 flex justify-between items-center bg-[#4ade80]/5 p-1.5 rounded-md border border-[#4ade80]/10">
+                        <span className="text-[8px] font-black uppercase text-[#4ade80] tracking-widest">
                           Subtotal
                         </span>
-                        <span className="text-lg font-black text-foreground">
+                        <span className="text-sm font-black text-foreground">
                           Rs. {(item.sellingPrice * item.quantity).toLocaleString()}
                         </span>
                       </div>
@@ -574,8 +658,11 @@ export default function POSPage() {
                         <FormControl>
                           <Input
                             type="number"
-                            {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            value={field.value === 0 ? '' : field.value}
+                            onChange={(e) =>
+                              field.onChange(e.target.value === '' ? 0 : Number(e.target.value))
+                            }
+                            onFocus={(e) => e.target.select()}
                             className="h-7 w-20 bg-muted/50 border-border text-right text-xs font-bold"
                             placeholder="0"
                           />
@@ -586,67 +673,27 @@ export default function POSPage() {
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold uppercase text-muted-foreground">
-                        Discount
+                        Discount (Rs.)
                       </span>
-                      <div className="flex gap-1">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className={`h-6 px-2 text-[10px] font-black border-border hover:bg-[#4ade80] hover:text-black ${discountPercent === 0 && discountAmount === 0
-                            ? 'bg-[#4ade80] text-black'
-                            : ''
-                            }`}
-                          onClick={() => {
-                            form.setValue('discountPercent', 0)
-                            form.setValue('discountAmount', 0)
-                          }}
-                        >
-                          Clear
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className={`h-6 px-2 text-[10px] font-black border-border hover:bg-[#4ade80] hover:text-black ${discountPercent === 5 ? 'bg-[#4ade80] text-black' : ''
-                            }`}
-                          onClick={() => {
-                            form.setValue('discountPercent', 5)
-                            form.setValue('discountAmount', 0)
-                          }}
-                        >
-                          5%
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className={`h-6 px-2 text-[10px] font-black border-border hover:bg-[#4ade80] hover:text-black ${discountPercent === 10 ? 'bg-[#4ade80] text-black' : ''
-                            }`}
-                          onClick={() => {
-                            form.setValue('discountPercent', 10)
-                            form.setValue('discountAmount', 0)
-                          }}
-                        >
-                          10%
-                        </Button>
-                      </div>
                     </div>
                     <FormField
                       control={form.control}
                       name="discountAmount"
                       render={({ field }) => (
-                        <div className="flex items-center gap-2 bg-muted/50 p-2 rounded-lg border border-border">
+                        <div className="flex items-center gap-2 bg-muted/50 p-1.5 rounded-lg border border-border">
                           <span className="text-xs text-red-500 font-black">Rs.</span>
                           <FormControl>
                             <Input
                               type="number"
-                              {...field}
+                              value={field.value === 0 ? '' : field.value}
                               onChange={(e) => {
-                                field.onChange(Math.max(0, Number(e.target.value)))
+                                field.onChange(
+                                  e.target.value === '' ? 0 : Math.max(0, Number(e.target.value))
+                                )
                                 form.setValue('discountPercent', 0)
                               }}
-                              className="flex-1 h-7 bg-transparent border-none text-right text-base font-black text-red-500 focus-visible:ring-0 focus-visible:ring-offset-0 p-0"
+                              onFocus={(e) => e.target.select()}
+                              className="flex-1 h-6 bg-transparent border-none text-right text-base font-black text-red-500 focus-visible:ring-0 focus-visible:ring-offset-0 p-0"
                               placeholder="0"
                             />
                           </FormControl>
@@ -654,41 +701,57 @@ export default function POSPage() {
                       )}
                     />
                   </div>
-                  <div className="flex justify-between text-foreground text-2xl font-black mt-1 pt-2 border-t border-border">
-                    <span className="uppercase text-sm tracking-widest mt-2">Total</span>
+                  <div className="flex justify-between text-foreground text-xl font-black mt-1 pt-2 border-t border-border">
+                    <span className="uppercase text-xs tracking-widest mt-2">Total</span>
                     <span className="text-[#4ade80]">Rs. {(total || 0).toLocaleString()}</span>
+                  </div>
+
+                  <div className="space-y-3 pt-3 border-t border-border">
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] font-bold uppercase text-muted-foreground mr-4">
+                        Payment Method
+                      </span>
+                      <FormField
+                        control={form.control}
+                        name="paymentMethod"
+                        render={({ field }) => (
+                          <div className="grid grid-cols-2 gap-1.5">
+                            {['Cash', 'Card', 'Bank Transfer', 'Credit'].map((method) => (
+                              <Button
+                                key={method}
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className={`h-8 px-2 text-[10px] font-black border-border transition-all duration-300 ${
+                                  field.value === method
+                                    ? 'bg-[#4ade80]! text-black border-[#4ade80] shadow-[0_0_15px_rgba(74,222,128,0.4)] scale-[1.02] ring-1 ring-[#4ade80]/50'
+                                    : 'hover:border-[#4ade80] hover:text-[#4ade80] bg-card text-muted-foreground'
+                                }`}
+                                onClick={() => field.onChange(method)}
+                              >
+                                {method.toUpperCase()}
+                              </Button>
+                            ))}
+                          </div>
+                        )}
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className="space-y-2 border-t border-border pt-2">
                   <div className="space-y-2 mb-4">
                     <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-                      Customer Details (Optional)
+                      Customer Info
                     </h4>
-                    <FormField
-                      control={form.control}
-                      name="customerName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <Input
-                              placeholder="Customer Name"
-                              {...field}
-                              className="h-8 bg-muted/50 border-border text-xs font-bold placeholder:text-muted-foreground/50"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
                     <div className="grid grid-cols-2 gap-2">
                       <FormField
                         control={form.control}
-                        name="customerPhone"
+                        name="customerName"
                         render={({ field }) => (
                           <FormItem>
                             <FormControl>
                               <Input
-                                placeholder="Phone"
+                                placeholder="Customer Name"
                                 {...field}
                                 className="h-8 bg-muted/50 border-border text-xs font-bold placeholder:text-muted-foreground/50"
                               />
@@ -699,13 +762,12 @@ export default function POSPage() {
                       />
                       <FormField
                         control={form.control}
-                        name="customerEmail"
+                        name="customerPhone"
                         render={({ field }) => (
                           <FormItem>
                             <FormControl>
                               <Input
-                                placeholder="Email"
-                                type="email"
+                                placeholder="Phone Number"
                                 {...field}
                                 className="h-8 bg-muted/50 border-border text-xs font-bold placeholder:text-muted-foreground/50"
                               />
@@ -735,8 +797,8 @@ export default function POSPage() {
       </Card>
 
       <Dialog open={showReceipt} onOpenChange={setShowReceipt}>
-        <DialogContent className="bg-background border-border text-foreground sm:max-w-md">
-          <div className="flex flex-col items-center justify-center pt-4">
+        <DialogContent className="bg-background border-border text-foreground sm:max-w-md max-h-[90vh] flex flex-col">
+          <div className="flex flex-col items-center justify-center pt-4 shrink-0">
             <div className="w-16 h-16 bg-[#4ade80]/20 rounded-full flex items-center justify-center mb-4 border border-[#4ade80]/50 animate-pulse">
               <CheckCircle2 className="w-10 h-10 text-[#4ade80]" />
             </div>
@@ -747,94 +809,80 @@ export default function POSPage() {
               Transaction completed successfully.
             </DialogDescription>
           </div>
-          <div className="mt-6 p-6 bg-white text-black rounded-lg shadow-inner font-mono text-sm" ref={receiptRef}>
-            <div className="text-center border-bottom">
-              <div className="fs-lg uppercase">
-                {currentStore?.name}
-              </div>
-              <div className="fs-sm uppercase mt-1">
-                {currentStore?.address}
-              </div>
-              <div className="fs-sm mt-1 ">
-                Tel: {currentStore?.phone}
-              </div>
-              <div className="fs-xs mt-2 uppercase">
-                {lastSale &&
-                  format(new Date(lastSale.saleDate), "MMM dd, yyyy - HH:mm:ss")}
-              </div>
-              <div className="fs-xs uppercase">
-                INV: {lastSale?.invoiceNumber}
-              </div>
-            </div>
-            {lastSale?.customerName && (
-              <div className="border-bottom">
-                <div className="fs-xs uppercase font-bold">Customer</div>
-                <div className="fs-sm font-bold">{lastSale.customerName}</div>
-                {lastSale.customerPhone && (
-                  <div className="fs-sm">{lastSale.customerPhone}</div>
-                )}
-              </div>
-            )}
-            <div className="mb-3">
-              {lastSale?.items.map((item: any, idx: number) => (
-                <div key={idx} className="flex fs-sm mt-1">
-                  <div>
-                    <div className="font-bold">{item.productName}</div>
-                    <div className="fs-xs font-bold ">
-                      Qty: {item.quantity} x {item.sellingPrice}
-                    </div>
-                  </div>
-                  <div className="font-bold">
-                    {(item.totalAmount || 0).toLocaleString()}
-                  </div>
+
+          <div className="flex-1 overflow-y-auto min-h-0 mt-6 rounded-lg shadow-inner">
+            <div className="p-6 bg-white text-black font-mono text-sm" ref={receiptRef}>
+              <div className="text-center border-bottom">
+                <div className="fs-lg uppercase">{currentStore?.name}</div>
+                <div className="fs-sm uppercase mt-1">{currentStore?.address}</div>
+                <div className="fs-sm mt-1 ">Tel: {currentStore?.phone}</div>
+                <div className="fs-xs mt-2 uppercase">
+                  {lastSale && format(new Date(lastSale.saleDate), 'MMM dd, yyyy - HH:mm:ss')}
                 </div>
-              ))}
-            </div>
-            <div className="border-top fs-sm">
-              <div className="flex">
-                <span>Subtotal</span>
-                <span>{(lastSale?.subtotal || 0).toLocaleString()}</span>
+                <div className="fs-xs uppercase">INV: {lastSale?.invoiceNumber}</div>
               </div>
-              <div className="flex">
-                <span>Tax</span>
-                <span>{(lastSale?.taxAmount || 0).toLocaleString()}</span>
-              </div>
-              {lastSale?.discountAmount > 0 && (
-                <div className="flex font-bold">
-                  <span>Discount</span>
-                  <span>-{lastSale.discountAmount.toLocaleString()}</span>
+              {lastSale?.customerName && (
+                <div className="border-bottom">
+                  <div className="fs-xs uppercase font-bold">Customer</div>
+                  <div className="fs-sm font-bold">{lastSale.customerName}</div>
+                  {lastSale.customerPhone && <div className="fs-sm">{lastSale.customerPhone}</div>}
                 </div>
               )}
-              <div className="flex fs-lg border-top mt-2">
-                <span>TOTAL</span>
-                <span>Rs. {lastSale?.totalAmount.toLocaleString()}</span>
+              <div className="mb-3">
+                {lastSale?.items.map((item: any, idx: number) => (
+                  <div key={idx} className="flex fs-sm mt-1">
+                    <div>
+                      <div className="font-bold">{item.productName}</div>
+                      <div className="fs-xs font-bold ">
+                        Qty: {item.quantity} x {item.sellingPrice}
+                      </div>
+                    </div>
+                    <div className="font-bold">{(item.totalAmount || 0).toLocaleString()}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="border-top fs-sm">
+                <div className="flex">
+                  <span>Subtotal</span>
+                  <span>{(lastSale?.subtotal || 0).toLocaleString()}</span>
+                </div>
+                <div className="flex">
+                  <span>Tax</span>
+                  <span>{(lastSale?.taxAmount || 0).toLocaleString()}</span>
+                </div>
+                {lastSale?.discountAmount > 0 && (
+                  <div className="flex font-bold">
+                    <span>Discount</span>
+                    <span>-{lastSale.discountAmount.toLocaleString()}</span>
+                  </div>
+                )}
+                <div className="flex fs-lg border-top mt-2">
+                  <span>TOTAL</span>
+                  <span>Rs. {lastSale?.totalAmount.toLocaleString()}</span>
+                </div>
+                <div className="flex fs-sm mt-1">
+                  <span>Paid Amount</span>
+                  <span>Rs. {(lastSale?.paidAmount || 0).toLocaleString()}</span>
+                </div>
+                {lastSale?.totalAmount - lastSale?.paidAmount > 0 && (
+                  <div className="flex fs-sm font-bold border-top mt-1 pt-1 text-red-500">
+                    <span>Balance Due</span>
+                    <span>Rs. {(lastSale.totalAmount - lastSale.paidAmount).toLocaleString()}</span>
+                  </div>
+                )}
+              </div>
+              <div className="text-center fs-xs mt-3">THANK YOU FOR VISITING!</div>
+              <div className="border-top text-center mt-3">
+                <div className="fs-xs font-bold uppercase">Powered by REX POS</div>
+                <div className="fs-xs font-bold">Developed by Hafiz Hasnain</div>
+                <div className="fs-xs font-bold">+92 321 4233028</div>
+                <div className="fs-xs font-bold">hafizhasnain.dev@gmail.com</div>
+                <div className="fs-xs font-bold">codyxa.com</div>
               </div>
             </div>
-            <div className="text-center fs-xs mt-3">
-              THANK YOU FOR VISITING!
-            </div>
-            <div className="border-top text-center mt-3">
-              <div className="fs-xs font-bold uppercase">
-                Powered by REX POS
-              </div>
-              <div className="fs-xs font-bold">
-                Developed by Hafiz Hasnain
-              </div>
-              <div className="fs-xs font-bold">
-                +92 321 4233028
-              </div>
-              <div className="fs-xs font-bold">
-                hafizhasnain.dev@gmail.com
-              </div>
-              <div className="fs-xs font-bold">
-                codyxa.com
-              </div>
-            </div>
-
           </div>
 
-
-          <div className="flex gap-3 mt-4">
+          <div className="flex gap-3 mt-4 shrink-0">
             <Button
               variant="outline"
               className="flex-1 border-border font-black uppercase text-xs"

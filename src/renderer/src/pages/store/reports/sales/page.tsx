@@ -22,14 +22,35 @@ import {
   DropdownMenuTrigger
 } from '@renderer/components/ui/dropdown-menu'
 import { printContent } from '@renderer/lib/print-utils'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@renderer/components/ui/select'
+import { Input } from '@renderer/components/ui/input'
+import { Label } from '@renderer/components/ui/label'
+import { Wallet } from 'lucide-react'
+
+const PAYMENT_METHODS = ['Cash', 'Card', 'Bank Transfer']
 
 export default function SalesReportsPage() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedSale, setSelectedSale] = useState<any>(null)
+  console.log(selectedSale)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false)
+  const [statusFilter, setStatusFilter] = useState('All')
+
+  // Payment Form State
+  const [paymentAmount, setPaymentAmount] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('Cash')
+  const [paymentNotes, setPaymentNotes] = useState('')
+  const [isPaymentSubmitting, setIsPaymentSubmitting] = useState(false)
 
   const [sales, setSales] = useState<any[]>([])
   const [totalRecords, setTotalRecords] = useState(0)
@@ -39,7 +60,7 @@ export default function SalesReportsPage() {
 
   useEffect(() => {
     loadSales()
-  }, [page, pageSize, searchTerm])
+  }, [page, pageSize, searchTerm, statusFilter])
 
   const loadSales = async () => {
     setIsLoading(true)
@@ -52,7 +73,8 @@ export default function SalesReportsPage() {
         storeId: store._id || store.id,
         page,
         pageSize,
-        search: searchTerm
+        search: searchTerm,
+        status: statusFilter
       })
 
       if (result.success) {
@@ -87,6 +109,50 @@ export default function SalesReportsPage() {
     } finally {
       setIsDeleting(false)
     }
+  }
+
+  const handleRecordPayment = async () => {
+    if (!selectedSale || !paymentAmount) return
+
+    setIsPaymentSubmitting(true)
+    try {
+      // Get current user for recordedBy
+      const userStr = localStorage.getItem('user')
+      const user = userStr ? JSON.parse(userStr) : null
+
+      const result = await window.api.sales.recordPayment(selectedSale._id, {
+        amount: parseFloat(paymentAmount),
+        method: paymentMethod,
+        notes: paymentNotes,
+        recordedBy: user?._id || user?.id
+      })
+
+      if (result.success) {
+        toast.success('Payment recorded successfully')
+        setIsPaymentOpen(false)
+        setPaymentAmount('')
+        setPaymentNotes('')
+        loadSales()
+        if (isDetailsOpen) {
+          if (selectedSale._id === result.data._id) setSelectedSale(result.data)
+        }
+      } else {
+        toast.error(result.error || 'Failed to record payment')
+      }
+    } catch (error: any) {
+      toast.error('Error: ' + error.message)
+    } finally {
+      setIsPaymentSubmitting(false)
+    }
+  }
+
+  const openPaymentDialog = (sale: any) => {
+    setSelectedSale(sale)
+    const remaining = sale.totalAmount - (sale.paidAmount || 0)
+    setPaymentAmount(remaining.toString())
+    setPaymentMethod('Cash')
+    setPaymentNotes('')
+    setIsPaymentOpen(true)
   }
 
   const columns = [
@@ -131,7 +197,15 @@ export default function SalesReportsPage() {
       header: 'Status',
       accessor: 'paymentStatus',
       render: (item: any) => (
-        <Badge className="bg-[#4ade80]/10 text-[#4ade80] border-[#4ade80]/20">
+        <Badge
+          className={
+            item.paymentStatus === 'PAID'
+              ? 'bg-[#4ade80]/10 text-[#4ade80] border-[#4ade80]/20'
+              : item.paymentStatus === 'PARTIAL'
+                ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
+                : 'bg-red-500/10 text-red-500 border-red-500/20'
+          }
+        >
           {item.paymentStatus}
         </Badge>
       )
@@ -157,6 +231,15 @@ export default function SalesReportsPage() {
             className="bg-popover border-border text-popover-foreground"
             align="end"
           >
+            {item.paymentStatus !== 'PAID' && (
+              <DropdownMenuItem
+                onClick={() => openPaymentDialog(item)}
+                className="focus:bg-[#4ade80] focus:text-black cursor-pointer font-medium"
+              >
+                <Wallet className="w-4 h-4 mr-2" />
+                Record Payment
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               onClick={() => {
                 setSelectedSale(item)
@@ -185,12 +268,26 @@ export default function SalesReportsPage() {
 
   return (
     <>
+      <div className="flex justify-end mb-4 px-1">
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[180px] bg-background border-border">
+            <SelectValue placeholder="Filter Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="All">All Status</SelectItem>
+            <SelectItem value="Paid">Paid</SelectItem>
+            <SelectItem value="Pending">Pending</SelectItem>
+            <SelectItem value="Partial">Partial</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <DataPage
         title="Sales Reports"
         description="View and export all transactions recorded by the system."
         data={sales}
         columns={columns}
-        searchPlaceholder="Search by sale ID or total..."
+        searchPlaceholder="Search by invoice # or customer..."
         fileName="sales_history_export"
         isLoading={isLoading}
         currentPage={page}
@@ -450,6 +547,107 @@ export default function SalesReportsPage() {
               loadingText="Deleting..."
             >
               Delete Permanently
+            </LoadingButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Recording Dialog */}
+      <Dialog open={isPaymentOpen} onOpenChange={setIsPaymentOpen}>
+        <DialogContent className="bg-background border-border text-foreground sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wallet className="w-5 h-5 text-[#4ade80]" />
+              Record Payment
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="bg-muted/50 p-4 rounded-lg space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Invoice:</span>
+                <span className="font-mono font-bold">{selectedSale?.invoiceNumber}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Total Amount:</span>
+                <span className="font-mono">Rs. {selectedSale?.totalAmount?.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Already Paid:</span>
+                <span className="font-mono text-green-500">
+                  Rs. {selectedSale?.paidAmount?.toLocaleString() || 0}
+                </span>
+              </div>
+              <div className="border-t border-border pt-2 flex justify-between font-bold">
+                <span>Remaining Balance:</span>
+                <span className="font-mono text-red-500">
+                  Rs.{' '}
+                  {(selectedSale
+                    ? selectedSale.totalAmount - (selectedSale.paidAmount || 0)
+                    : 0
+                  ).toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Amount to Pay</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-mono">
+                    Rs.
+                  </span>
+                  <Input
+                    type="number"
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(e.target.value)}
+                    className="pl-10 font-mono text-lg"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Payment Method</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {PAYMENT_METHODS.map((method) => (
+                    <div
+                      key={method}
+                      onClick={() => setPaymentMethod(method)}
+                      className={`
+                        cursor-pointer border rounded-lg p-2 text-center text-sm transition-all
+                        ${
+                          paymentMethod === method
+                            ? 'bg-[#4ade80]/10 border-[#4ade80] text-[#4ade80] font-bold'
+                            : 'bg-background border-border hover:border-gray-400'
+                        }
+                      `}
+                    >
+                      {method}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Notes (Optional)</Label>
+                <Input
+                  value={paymentNotes}
+                  onChange={(e) => setPaymentNotes(e.target.value)}
+                  placeholder="Enter notes..."
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPaymentOpen(false)}>
+              Cancel
+            </Button>
+            <LoadingButton
+              className="bg-[#4ade80] hover:bg-[#22c55e] text-black font-bold"
+              onClick={handleRecordPayment}
+              isLoading={isPaymentSubmitting}
+            >
+              Confirm Payment
             </LoadingButton>
           </DialogFooter>
         </DialogContent>

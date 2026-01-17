@@ -11,6 +11,14 @@ export interface ISaleItem {
   profitAmount: number
 }
 
+export interface IPaymentRecord {
+  date: Date
+  amount: number
+  method: string
+  notes?: string
+  recordedBy: mongoose.Types.ObjectId
+}
+
 export interface ISale extends Document {
   invoiceNumber: string
   customerName?: string
@@ -30,6 +38,7 @@ export interface ISale extends Document {
   notes?: string
   soldBy: mongoose.Types.ObjectId
   store: mongoose.Types.ObjectId
+  paymentHistory: IPaymentRecord[]
   createdAt: Date
   updatedAt: Date
 }
@@ -139,7 +148,7 @@ const SaleSchema = new Schema<ISale>(
     paymentMethod: {
       type: String,
       required: true,
-      enum: ['Cash', 'Card', 'Bank Transfer', 'Installment']
+      enum: ['Cash', 'Card', 'Bank Transfer', 'Installment', 'Credit']
     },
     profitAmount: {
       type: Number,
@@ -157,7 +166,33 @@ const SaleSchema = new Schema<ISale>(
       type: Schema.Types.ObjectId,
       ref: 'Store',
       required: true
-    }
+    },
+    paymentHistory: [
+      {
+        date: {
+          type: Date,
+          required: true,
+          default: Date.now
+        },
+        amount: {
+          type: Number,
+          required: true,
+          min: 0
+        },
+        method: {
+          type: String,
+          required: true
+        },
+        notes: {
+          type: String
+        },
+        recordedBy: {
+          type: Schema.Types.ObjectId,
+          ref: 'User',
+          required: true
+        }
+      }
+    ]
   },
   {
     timestamps: true

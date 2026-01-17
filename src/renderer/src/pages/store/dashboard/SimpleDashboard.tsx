@@ -5,10 +5,7 @@ import {
   Package,
   History,
   AlertTriangle,
-  Clock,
-  Calendar as CalendarIcon,
   Store,
-  ChevronRight,
   TrendingUp,
   Search
 } from 'lucide-react'
@@ -17,22 +14,14 @@ import { Button } from '@renderer/components/ui/button'
 import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { motion } from 'framer-motion'
-import { useState, useEffect } from 'react'
 
 interface SimpleDashboardProps {
   stats: any
-  user: any
 }
 
-export default function SimpleDashboard({ stats, user }: SimpleDashboardProps) {
+export default function SimpleDashboard({ stats }: SimpleDashboardProps) {
   const navigate = useNavigate()
-  const [currentTime, setCurrentTime] = useState(new Date())
   const selectedStore = JSON.parse(localStorage.getItem('selectedStore') || '{}')
-
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000)
-    return () => clearInterval(timer)
-  }, [])
 
   const container = {
     hidden: { opacity: 0 },
@@ -78,27 +67,6 @@ export default function SimpleDashboard({ stats, user }: SimpleDashboardProps) {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
-      {/* Hero Welcome Section - Simplified */}
-      <div className="relative overflow-hidden rounded-2xl bg-card border border-border p-8">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-1">
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">
-              Welcome back, {user?.fullName?.split(' ')[0] || 'User'}
-            </h1>
-            <p className="text-muted-foreground text-lg">
-              {format(currentTime, 'EEEE, do MMMM yyyy')}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-4 bg-muted/30 p-4 rounded-xl border border-border/50">
-            <div className="flex items-center gap-2 text-2xl font-mono text-[#4ade80]">
-              <Clock className="w-5 h-5" />
-              {format(currentTime, 'HH:mm:ss')}
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Main Stats Grid - Uniform and Simple */}
       <motion.div
         variants={container}

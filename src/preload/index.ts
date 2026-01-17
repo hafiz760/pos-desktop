@@ -13,7 +13,8 @@ const api = {
     delete: (id) => ipcRenderer.invoke('products:delete', id),
     getById: (id) => ipcRenderer.invoke('products:getById', id),
     getBySku: (params) => ipcRenderer.invoke('products:getBySku', params),
-    getByBarcode: (params) => ipcRenderer.invoke('products:getByBarcode', params)
+    getByBarcode: (params) => ipcRenderer.invoke('products:getByBarcode', params),
+    checkBarcode: (params) => ipcRenderer.invoke('products:checkBarcode', params)
   },
   suppliers: {
     getAll: (params) => ipcRenderer.invoke('suppliers:getAll', params),
@@ -23,6 +24,7 @@ const api = {
   },
   purchaseOrders: {
     getAll: (params) => ipcRenderer.invoke('purchaseOrders:getAll', params),
+    getLastSupply: (params) => ipcRenderer.invoke('purchaseOrders:getLastSupply', params),
     getById: (id) => ipcRenderer.invoke('purchaseOrders:getById', id),
     create: (data) => ipcRenderer.invoke('purchaseOrders:create', data),
     update: (id, data) => ipcRenderer.invoke('purchaseOrders:update', { id, data }),
@@ -79,7 +81,9 @@ const api = {
     create: (data) => ipcRenderer.invoke('sales:create', data),
     getAll: (params) => ipcRenderer.invoke('sales:getAll', params),
     getById: (id) => ipcRenderer.invoke('sales:getById', id),
-    delete: (id) => ipcRenderer.invoke('sales:delete', id)
+    delete: (id) => ipcRenderer.invoke('sales:delete', id),
+    recordPayment: (saleId, paymentData) => ipcRenderer.invoke('sales:recordPayment', { saleId, paymentData }),
+    getPendingStats: (storeId) => ipcRenderer.invoke('sales:getPendingStats', { storeId })
   },
   accounts: {
     getAll: (params) => ipcRenderer.invoke('accounts:getAll', params),

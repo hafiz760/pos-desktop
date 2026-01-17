@@ -20,6 +20,11 @@ declare global {
         getById: (id: string) => Promise<any>
         getBySku: (params: { storeId: string; sku: string }) => Promise<any>
         getByBarcode: (params: { storeId: string; barcode: string }) => Promise<any>
+        checkBarcode: (params: {
+          storeId: string
+          barcode: string
+          excludeId?: string
+        }) => Promise<any>
       }
       suppliers: {
         getAll: (params?: any) => Promise<any>
@@ -30,6 +35,7 @@ declare global {
       purchaseOrders: {
         getAll: (params?: any) => Promise<any>
         getById: (id: string) => Promise<any>
+        getLastSupply: (params: { storeId: string; productId: string }) => Promise<any>
         create: (data: any) => Promise<any>
         update: (id: string, data: any) => Promise<any>
         delete: (id: string) => Promise<any>
@@ -46,11 +52,7 @@ declare global {
         update: (id: string, data: any) => Promise<any>
         delete: (id: string) => Promise<any>
       }
-      sales: {
-        getAll: (filters?: any) => Promise<any>
-        create: (data: any) => Promise<any>
-        delete: (id: string) => Promise<any>
-      }
+
       accounts: {
         getAll: (params?: any) => Promise<any>
         create: (data: any) => Promise<any>
@@ -94,6 +96,14 @@ declare global {
       }
       printer: {
         printReceipt: (html: string) => Promise<any>
+      }
+      sales: {
+        create: (data: any) => Promise<any>
+        getAll: (params?: any) => Promise<any>
+        getById: (id: string) => Promise<any>
+        delete: (id: string) => Promise<any>
+        recordPayment: (saleId: string, paymentData: any) => Promise<any>
+        getPendingStats: (storeId: string) => Promise<any>
       }
       dashboard: {
         getStats: (storeId: string) => Promise<any>

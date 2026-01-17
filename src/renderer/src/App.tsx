@@ -12,6 +12,7 @@ import StoreDetails from './pages/admin/stores/detail'
 import ProfilePage from './pages/admin/profile/page'
 import StoreLayout from './layouts/StoreLayout'
 import ProductsPage from '@renderer/pages/store/inventory/products/page'
+import ProductFormPage from '@renderer/pages/store/inventory/products/form'
 import ProductDetails from '@renderer/pages/store/inventory/products/detail'
 import CategoriesPage from '@renderer/pages/store/inventory/categories/page'
 import BrandsPage from '@renderer/pages/store/inventory/brands/page'
@@ -141,6 +142,8 @@ function App(): React.JSX.Element {
             <Route index element={<StoreDashboard />} />
             <Route path="pos" element={<POSPage />} />
             <Route path="inventory/products" element={<ProductsPage />} />
+            <Route path="inventory/products/create" element={<ProductFormPage />} />
+            <Route path="inventory/products/:id/edit" element={<ProductFormPage />} />
             <Route path="inventory/products/:id" element={<ProductDetails />} />
             <Route path="inventory/categories" element={<CategoriesPage />} />
             <Route path="inventory/brands" element={<BrandsPage />} />

@@ -19,6 +19,7 @@ export interface IProduct extends Document {
   minStockLevel: number
   warrantyMonths?: number
   isActive: boolean
+  color?: string
   createdAt: Date
   updatedAt: Date
 }
@@ -37,7 +38,7 @@ const ProductSchema = new Schema<IProduct>(
     },
     barcode: {
       type: String,
-      sparse: true
+      trim: true
     },
     store: {
       type: Schema.Types.ObjectId,
@@ -93,6 +94,10 @@ const ProductSchema = new Schema<IProduct>(
     isActive: {
       type: Boolean,
       default: true
+    },
+    color: {
+      type: String,
+      default: ''
     }
   },
   {
@@ -102,14 +107,22 @@ const ProductSchema = new Schema<IProduct>(
 
 // Indexes for fast queries
 ProductSchema.index({ store: 1, sku: 1 }, { unique: true })
-ProductSchema.index({ store: 1, barcode: 1 }, { unique: true, sparse: true })
+ProductSchema.index({ store: 1, barcode: 1 }, {
+  partialFilterExpression: { barcode: { $type: "string" } }
+})
 ProductSchema.index({ store: 1 })
 ProductSchema.index({ category: 1 })
 ProductSchema.index({ brand: 1 })
 ProductSchema.index({ name: 'text', sku: 'text' }) // Full text search
 ProductSchema.index({ isActive: 1 })
 
+// Ensure indexes are created
 const ProductModel = mongoose.models.Product || mongoose.model<IProduct>('Product', ProductSchema)
+
+// Sync indexes to ensure uniqueness is enforced
+ProductModel.syncIndexes().catch((err) => {
+  console.error('Error syncing indexes for Product model:', err)
+})
 
 if (mongoose.models.Product && !ProductModel.schema.paths['store']) {
   ProductModel.schema.add({

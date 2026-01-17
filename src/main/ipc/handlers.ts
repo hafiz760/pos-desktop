@@ -491,9 +491,9 @@ export function registerIpcHandlers() {
         const products = await models.Product.find(query)
           .populate('category')
           .populate('brand')
-          .limit(pageSize)
+          .sort({ createdAt: -1 })
           .skip((page - 1) * pageSize)
-          .sort({ name: 1 })
+          .limit(pageSize)
           .lean()
 
         return toJSON({
@@ -517,6 +517,50 @@ export function registerIpcHandlers() {
         return acc
       }, {})
 
+      // Check for duplicate barcode in the same store
+      if (sanitizedData.barcode && typeof sanitizedData.barcode === 'string') {
+        const barcode = sanitizedData.barcode.trim()
+        if (barcode) {
+          const storeId = sanitizedData.store?.toString() || sanitizedData.store
+          const existingBarcode = await models.Product.findOne({
+            store: storeId,
+            barcode: barcode
+          }).lean()
+
+          if (existingBarcode) {
+            console.log(`[Validation Error] Duplicate barcode: ${barcode} in store: ${storeId}`)
+            return {
+              success: false,
+              error: `Barcode "${barcode}" is already used by product: ${existingBarcode.name}`
+            }
+          }
+          sanitizedData.barcode = barcode // Ensure saved version is trimmed
+        } else {
+          sanitizedData.barcode = null // Set to null if empty/whitespace
+        }
+      }
+
+      // Check for duplicate SKU in the same store
+      if (sanitizedData.sku && typeof sanitizedData.sku === 'string') {
+        const sku = sanitizedData.sku.trim().toUpperCase()
+        if (sku) {
+          const storeId = sanitizedData.store?.toString() || sanitizedData.store
+          const existingSku = await models.Product.findOne({
+            store: storeId,
+            sku: sku
+          }).lean()
+
+          if (existingSku) {
+            console.log(`[Validation Error] Duplicate SKU: ${sku} in store: ${storeId}`)
+            return {
+              success: false,
+              error: `SKU "${sku}" is already used by product: ${existingSku.name}`
+            }
+          }
+          sanitizedData.sku = sku // Ensure saved version is trimmed and uppercase
+        }
+      }
+
       const product = await models.Product.create(sanitizedData)
       return toJSON({ success: true, data: product.toObject() })
     } catch (error: any) {
@@ -531,6 +575,52 @@ export function registerIpcHandlers() {
         acc[key] = data[key] === '' ? null : data[key]
         return acc
       }, {})
+
+      // Check for duplicate barcode in the same store (excluding current product)
+      if (sanitizedData.barcode && typeof sanitizedData.barcode === 'string') {
+        const barcode = sanitizedData.barcode.trim()
+        if (barcode) {
+          const storeId = sanitizedData.store?.toString() || sanitizedData.store
+          const existingBarcode = await models.Product.findOne({
+            _id: { $ne: id },
+            store: storeId,
+            barcode: barcode
+          }).lean()
+
+          if (existingBarcode) {
+            console.log(`[Validation Error] Duplicate barcode update: ${barcode} in store: ${storeId}`)
+            return {
+              success: false,
+              error: `Barcode "${barcode}" is already used by product: ${existingBarcode.name}`
+            }
+          }
+          sanitizedData.barcode = barcode
+        } else {
+          sanitizedData.barcode = null // Set to null if empty/whitespace
+        }
+      }
+
+      // Check for duplicate SKU in the same store (excluding current product)
+      if (sanitizedData.sku && typeof sanitizedData.sku === 'string') {
+        const sku = sanitizedData.sku.trim().toUpperCase()
+        if (sku) {
+          const storeId = sanitizedData.store?.toString() || sanitizedData.store
+          const existingSku = await models.Product.findOne({
+            _id: { $ne: id },
+            store: storeId,
+            sku: sku
+          }).lean()
+
+          if (existingSku) {
+            console.log(`[Validation Error] Duplicate SKU update: ${sku} in store: ${storeId}`)
+            return {
+              success: false,
+              error: `SKU "${sku}" is already used by product: ${existingSku.name}`
+            }
+          }
+          sanitizedData.sku = sku
+        }
+      }
 
       const product = await models.Product.findByIdAndUpdate(id, sanitizedData, { new: true })
         .populate('category')
@@ -585,6 +675,26 @@ export function registerIpcHandlers() {
         .populate('brand')
         .lean()
       return toJSON({ success: true, data: product })
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  })
+
+  ipcMain.handle('products:checkBarcode', async (_event, { storeId, barcode, excludeId }) => {
+    try {
+      const trimmedBarcode = (barcode || '').trim()
+      if (!trimmedBarcode) return { success: true, exists: false }
+
+      const storeIdStr = storeId?.toString() || storeId
+      const query: any = { store: storeIdStr, barcode: trimmedBarcode }
+      if (excludeId) {
+        query._id = { $ne: excludeId }
+      }
+      const product = await models.Product.findOne(query).select('name').lean()
+      if (product) {
+        return { success: true, exists: true, productName: product.name }
+      }
+      return { success: true, exists: false }
     } catch (error: any) {
       return { success: false, error: error.message }
     }
@@ -686,6 +796,32 @@ export function registerIpcHandlers() {
     }
   })
 
+  ipcMain.handle('purchaseOrders:getLastSupply', async (_event, { storeId, productId }) => {
+    try {
+      const po = await models.PurchaseOrder.findOne({
+        store: storeId,
+        'items.product': productId
+      })
+        .sort({ createdAt: -1 })
+        .populate('supplier')
+        .lean()
+
+      if (po && po.supplier) {
+        const item = po.items.find((i: any) => i.product.toString() === productId)
+        return toJSON({
+          success: true,
+          data: {
+            supplier: po.supplier,
+            lastCost: item?.unitCost || 0
+          }
+        })
+      }
+      return { success: true, data: null }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  })
+
   ipcMain.handle('purchaseOrders:create', async (_event, data) => {
     try {
       if (!data.poNumber) {
@@ -765,47 +901,6 @@ export function registerIpcHandlers() {
   })
 
   // Sales Handlers
-  ipcMain.handle(
-    'sales:getAll',
-    async (_event, { storeId, page = 1, pageSize = 20, search = '' } = {}) => {
-      try {
-        const query: any = { store: storeId }
-        if (search) {
-          query.$or = [
-            { invoiceNumber: { $regex: search, $options: 'i' } },
-            { customerName: { $regex: search, $options: 'i' } }
-          ]
-        }
-
-        const sales = await models.Sale.find(query)
-          .populate('items.product')
-          .sort({ createdAt: -1 })
-          .skip((page - 1) * pageSize)
-          .limit(pageSize)
-          .lean()
-
-        const total = await models.Sale.countDocuments(query)
-
-        return toJSON({
-          success: true,
-          data: sales,
-          total,
-          totalPages: Math.ceil(total / pageSize)
-        })
-      } catch (error: any) {
-        return { success: false, error: error.message }
-      }
-    }
-  )
-
-  ipcMain.handle('sales:getById', async (_event, id) => {
-    try {
-      const sale = await models.Sale.findById(id).lean()
-      return toJSON({ success: true, data: sale })
-    } catch (error: any) {
-      return { success: false, error: error.message }
-    }
-  })
 
   ipcMain.handle('sales:create', async (_event, data) => {
     try {
@@ -847,6 +942,116 @@ export function registerIpcHandlers() {
 
       await models.Sale.findByIdAndDelete(id)
       return { success: true }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  })
+
+  ipcMain.handle(
+    'sales:getAll',
+    async (_event, { storeId, page = 1, pageSize = 20, search = '', status = '' }) => {
+      try {
+        const query: any = { store: storeId }
+
+        // Filter by payment status
+        if (status && status !== 'All') {
+          query.paymentStatus = status.toUpperCase()
+        }
+
+        // Search by invoice number or customer name
+        if (search) {
+          query.$or = [
+            { invoiceNumber: { $regex: search, $options: 'i' } },
+            { customerName: { $regex: search, $options: 'i' } }
+          ]
+        }
+
+        const total = await models.Sale.countDocuments(query)
+        const sales = await models.Sale.find(query)
+          .populate('soldBy', 'fullName')
+          .skip((page - 1) * pageSize)
+          .limit(pageSize)
+          .sort({ saleDate: -1 })
+          .lean()
+
+        return toJSON({
+          success: true,
+          data: sales,
+          total,
+          page,
+          totalPages: Math.ceil(total / pageSize)
+        })
+      } catch (error: any) {
+        return { success: false, error: error.message }
+      }
+    }
+  )
+
+  ipcMain.handle('sales:getById', async (_event, id) => {
+    try {
+      const sale = await models.Sale.findById(id)
+        .populate('soldBy', 'fullName')
+        .populate('paymentHistory.recordedBy', 'fullName')
+        .lean()
+
+      if (!sale) return { success: false, error: 'Sale not found' }
+      return toJSON({ success: true, data: sale })
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  })
+
+  ipcMain.handle('sales:recordPayment', async (_event, { saleId, paymentData }) => {
+    try {
+      const sale = await models.Sale.findById(saleId)
+      if (!sale) return { success: false, error: 'Sale not found' }
+
+      // Update paid amount and add to payment history
+      sale.paidAmount += paymentData.amount
+      sale.paymentHistory.push({
+        date: new Date(),
+        amount: paymentData.amount,
+        method: paymentData.method,
+        notes: paymentData.notes || '',
+        recordedBy: paymentData.recordedBy
+      })
+
+      // Update payment status
+      if (sale.paidAmount >= sale.totalAmount) {
+        sale.paymentStatus = 'PAID'
+      } else if (sale.paidAmount > 0) {
+        sale.paymentStatus = 'PARTIAL'
+      }
+
+      await sale.save()
+      return toJSON({ success: true, data: sale })
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  })
+
+  ipcMain.handle('sales:getPendingStats', async (_event, { storeId }) => {
+    try {
+      const pendingSales = await models.Sale.find({
+        store: storeId,
+        paymentStatus: { $in: ['PENDING', 'PARTIAL'] }
+      }).lean()
+
+      const totalPending = pendingSales.reduce((sum, sale) => {
+        return sum + (sale.totalAmount - sale.paidAmount)
+      }, 0)
+
+      const totalCreditSales = pendingSales.reduce((sum, sale) => sum + sale.totalAmount, 0)
+
+      return toJSON({
+        success: true,
+        data: {
+          pendingCount: pendingSales.length,
+          totalPendingAmount: totalPending,
+          totalCreditSalesAmount: totalCreditSales,
+          recentPending: pendingSales.slice(0, 5)
+        }
+      })
     } catch (error: any) {
       return { success: false, error: error.message }
     }
@@ -1089,6 +1294,10 @@ export function registerIpcHandlers() {
 
       const lowStockCount = products.filter((p) => p.stockLevel <= p.minStockLevel).length
 
+      // Calculate total pending from unpaid sales
+      const pendingSales = sales.filter(s => s.paymentStatus !== 'PAID')
+      const totalPending = pendingSales.reduce((acc, sale) => acc + (sale.totalAmount - sale.paidAmount), 0)
+
       // Get last 7 days chart data
       const sevenDaysAgo = new Date()
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6)
@@ -1141,6 +1350,7 @@ export function registerIpcHandlers() {
           profit,
           salesCount,
           lowStockCount,
+          totalPending,
           recentSales,
           chartData
         }

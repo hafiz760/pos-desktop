@@ -17,17 +17,27 @@ import {
   History,
   TrendingUp,
   AlertCircle,
-  Edit3,
-  BarChart3
+  Edit3
 } from 'lucide-react'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
 import { toast } from 'sonner'
+import { RestockModal } from '@renderer/components/inventory/restock-modal'
+import { PackagePlus } from 'lucide-react'
 
 export default function ProductDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [product, setProduct] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [showRestock, setShowRestock] = useState(false)
+  const [currentStore, setCurrentStore] = useState<any>(null)
+
+  useEffect(() => {
+    const storeData = localStorage.getItem('selectedStore')
+    if (storeData) {
+      setCurrentStore(JSON.parse(storeData))
+    }
+  }, [])
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -101,9 +111,12 @@ export default function ProductDetails() {
             <Edit3 className="w-4 h-4 mr-2" />
             Edit Product
           </Button>
-          <Button className="bg-[#4ade80] hover:bg-[#22c55e] text-black font-semibold">
-            <BarChart3 className="w-4 h-4 mr-2" />
-            Stock Report
+          <Button
+            className="bg-[#4ade80] hover:bg-[#22c55e] text-black font-semibold"
+            onClick={() => setShowRestock(true)}
+          >
+            <PackagePlus className="w-4 h-4 mr-2" />
+            Quick Restock
           </Button>
         </div>
       </div>
@@ -271,6 +284,20 @@ export default function ProductDetails() {
           </Card>
         </div>
       </div>
+      <RestockModal
+        open={showRestock}
+        onOpenChange={setShowRestock}
+        product={product}
+        currentStore={currentStore}
+        onSuccess={() => {
+          // Reload product to update stock display
+          if (id) {
+            window.api.products.getById(id).then((result) => {
+              if (result.success) setProduct(result.data)
+            })
+          }
+        }}
+      />
     </div>
   )
 }
